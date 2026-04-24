@@ -79,55 +79,6 @@ def generate_daily_topic():
     import random
     return random.choice(topics)
 
-def generate_initial_conversation(topic):
-    """Generate initial conversation between friends about topic"""
-    try:
-        # Select 3 random friends for initial conversation
-        import random
-        selected_friends = random.sample(list(AI_FRIENDS.keys()), 3)
-        
-        # Shuffle the order of responding friends
-        random.shuffle(selected_friends)
-        
-        conversation_prompt = f"""
-Сгенерируй начальный диалог между {selected_friends[0]}, {selected_friends[1]} и {selected_friends[2]} на тему "{topic}".
-
-Правила:
-1. Каждый друг говорит согласно своему характеру из AI_FRIENDS
-2. Диалог должен быть живым и естественным
-3. 3-4 сообщения всего
-4. Каждый должен реагировать на предыдущего
-5. Используй их аватары и манеру речи
-6. Порядок ответов: {selected_friends[0]} → {selected_friends[1]} → {selected_friends[2]}
-
-Верни ответ в формате JSON:
-[
-    {{"sender": "{selected_friends[0]}", "text": "..."}},
-    {{"sender": "{selected_friends[1]}", "text": "..."}},
-    {{"sender": "{selected_friends[2]}", "text": "..."}}
-]
-"""
-        
-        client = OpenAI(
-            api_key=st.secrets["DEEPSEEK_API_KEY"],
-            base_url="https://api.deepseek.com"
-        )
-        
-        response = client.chat.completions.create(
-            model="deepseek-chat",
-            messages=[
-                {"role": "system", "content": "Ты - создатель живых диалогов между друзьями-персонажами. Создавай естественные и интересные разговоры."},
-                {"role": "user", "content": conversation_prompt}
-            ],
-            max_tokens=1500,
-            temperature=0.8
-        )
-        
-        import json
-        messages = json.loads(response.choices[0].message.content)
-        return messages, selected_friends
-    except Exception as e:
-        return [], []
 
 def get_ai_response(friend_name, message, chat_history=None):
     try:
@@ -372,56 +323,66 @@ def main():
         
         if st.button("🚀 Применить тему", key="apply_custom_topic", use_container_width=True):
             if custom_topic.strip():
+                # Set up responder queue instead of generating immediately
                 st.session_state.user_selected_topic = custom_topic.strip()
+                st.session_state.pending_responders = random.sample(list(AI_FRIENDS.keys()), len(AI_FRIENDS))
+                st.session_state.pending_topic = custom_topic.strip()
+                st.session_state.last_response_time = time.time()
+                st.session_state.daily_topic = None  # Reset to trigger new topic generation
                 st.rerun()
         
         st.markdown("---")
     
+    # Process responder queue at the beginning of main render (BEFORE chat display)
+    if st.session_state.get('pending_responders'):
+        now = time.time()
+        last = st.session_state.get('last_response_time', 0)
+        delay = random.uniform(1.5, 3.5)
+        
+        if now - last >= delay:
+            if st.session_state.pending_responders:
+                friend_name = st.session_state.pending_responders.pop(0)
+                topic = st.session_state.get('pending_topic', '')
+                
+                # Generate response for this friend
+                context_messages = [msg for msg in st.session_state.chat_history.get('group', [])[-3:]]
+                context_text = "\n".join([f"{msg['sender']}: {msg['text']}" for msg in context_messages])
+                
+                response_prompt = f"""
+Ты - {friend_name}. Дай короткий комментарий (1-2 предложения) на тему "{topic}".
+Учитывай предыдущие сообщения:
+{context_text}
+
+Отвечай естественно, согласно своему характеру. Не упоминай что ты ИИ.
+"""
+                
+                response = get_ai_response(friend_name, response_prompt, [])
+                if response and not response.startswith("Ошибка:"):
+                    # Set daily topic on first response
+                    if not st.session_state.get('daily_topic'):
+                        st.session_state.daily_topic = topic
+                    
+                    # Add message to chat
+                    st.session_state.chat_history['group'].append({
+                        'sender': friend_name,
+                        'text': response,
+                        'recipient': 'Всем',
+                        'timestamp': 'now'
+                    })
+                    
+                st.session_state.last_response_time = now
+                st.rerun()
+    
+    # Auto-refresh timer while queue is not empty
+    if st.session_state.get('pending_responders'):
+        placeholder = st.empty()
+        with placeholder:
+            st.markdown("*Друзья готовятся ответить...*")
+        time.sleep(1)
+        st.rerun()
+    
     # Live mode logic
     if st.session_state.live_mode:
-        # Generate daily topic only if user has selected one or custom topic
-        if not st.session_state.daily_topic and st.session_state.user_selected_topic:
-            with st.spinner("Создаю тему дня..."):
-                topic = generate_daily_topic()
-                st.session_state.daily_topic = topic
-                
-                # Generate initial conversation about the topic
-                initial_messages, selected_friends = generate_initial_conversation(topic)
-                
-                # Add initial messages to chat one by one with delays
-                if 'group' not in st.session_state.chat_history:
-                    st.session_state.chat_history['group'] = []
-                
-                # Store pending messages for sequential display
-                st.session_state.pending_messages = initial_messages
-                st.session_state.current_message_index = 0
-                st.session_state.last_auto_message_time = time.time()
-                
-                # Add first message immediately
-                if st.session_state.pending_messages and st.session_state.current_message_index < len(st.session_state.pending_messages):
-                    msg = st.session_state.pending_messages[st.session_state.current_message_index]
-                    st.session_state.chat_history['group'].append(msg)
-                    st.session_state.current_message_index += 1
-                    st.rerun()
-        
-        # Check if we need to add more pending messages
-        if hasattr(st.session_state, 'pending_messages') and st.session_state.pending_messages:
-            if st.session_state.current_message_index < len(st.session_state.pending_messages):
-                # Check if enough time has passed since last message
-                time_since_last = time.time() - st.session_state.last_auto_message_time
-                if time_since_last >= random.uniform(0.5, 2.5):
-                    # Add next message
-                    msg = st.session_state.pending_messages[st.session_state.current_message_index]
-                    st.session_state.chat_history['group'].append(msg)
-                    st.session_state.current_message_index += 1
-                    st.session_state.last_auto_message_time = time.time()
-                    
-                    # Clear pending messages if all are added
-                    if st.session_state.current_message_index >= len(st.session_state.pending_messages):
-                        st.session_state.pending_messages = []
-                    
-                    st.rerun()
-        
         # Display daily topic
         if st.session_state.daily_topic:
             st.markdown(f"""
@@ -431,11 +392,11 @@ def main():
             </div>
             """, unsafe_allow_html=True)
         
-        # Auto-messages from friends every 2-3 minutes (only if no pending messages)
+        # Auto-messages from friends every 2-3 minutes (only if no pending queue)
         current_time = time.time()
-        if (st.session_state.last_auto_message_time and 
-            current_time - st.session_state.last_auto_message_time > 120 and  # 2 minutes
-            not hasattr(st.session_state, 'pending_messages')):  # No pending messages
+        if (st.session_state.get('last_response_time', 0) and 
+            current_time - st.session_state.last_response_time > 120 and  # 2 minutes
+            not st.session_state.get('pending_responders')):  # No pending queue
             with st.spinner("Друзья общаются..."):
                 import random
                 friend_name = random.choice(list(AI_FRIENDS.keys()))
@@ -460,7 +421,7 @@ def main():
                         'recipient': 'Всем',
                         'timestamp': 'now'
                     })
-                    st.session_state.last_auto_message_time = current_time
+                    st.session_state.last_response_time = current_time
                     st.rerun()
     
     # Always show group messages
