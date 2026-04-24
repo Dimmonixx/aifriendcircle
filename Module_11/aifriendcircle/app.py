@@ -357,9 +357,14 @@ def main():
                 key="topic_selector"
             )
             
-            # Handle custom topic input
+            # Handle topic selection - trigger on change
+            topic_changed = False
+            
+            # Check if selectbox changed
             if selected_topic == "🎲 Случайная тема":
-                st.session_state.user_selected_topic = None
+                if st.session_state.user_selected_topic is not None:
+                    st.session_state.user_selected_topic = None
+                    topic_changed = True
             else:
                 # Map emoji topics to actual topic text
                 topic_mapping = {
@@ -374,10 +379,10 @@ def main():
                     "❤️ Отношения и психология": "Отношения: психология современности"
                 }
                 
-                if selected_topic in topic_mapping:
-                    st.session_state.user_selected_topic = topic_mapping[selected_topic]
-                else:
-                    st.session_state.user_selected_topic = selected_topic
+                mapped_topic = topic_mapping.get(selected_topic, selected_topic)
+                if st.session_state.user_selected_topic != mapped_topic:
+                    st.session_state.user_selected_topic = mapped_topic
+                    topic_changed = True
             
             # Custom topic input
             st.markdown("**Или введи свою тему:**")
@@ -387,10 +392,15 @@ def main():
                 key="custom_topic_input"
             )
             
+            # Apply custom topic button
             if st.button("📝 Применить тему", key="apply_custom_topic"):
-                if custom_topic.strip():
+                if custom_topic.strip() and st.session_state.user_selected_topic != custom_topic.strip():
                     st.session_state.user_selected_topic = custom_topic.strip()
-                    st.rerun()
+                    topic_changed = True
+            
+            # Rerun if topic changed
+            if topic_changed:
+                st.rerun()
         
         st.markdown("---")
         
