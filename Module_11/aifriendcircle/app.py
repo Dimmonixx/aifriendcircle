@@ -321,6 +321,20 @@ def main():
             st.session_state.selected_friend = None
             st.rerun()
         
+        # Live mode toggle in sidebar
+        if 'live_mode' not in st.session_state:
+            st.session_state.live_mode = False
+        
+        live_mode_text = "🔥 Живая тусовка: ВКЛ" if st.session_state.live_mode else "🔥 Живая тусовка: ВЫКЛ"
+        if st.button(live_mode_text, key="sidebar_live_mode_toggle", use_container_width=True):
+            st.session_state.live_mode = not st.session_state.live_mode
+            st.rerun()
+        
+        st.markdown("---")
+        
+        # Friends list in sidebar
+        st.markdown("### 👥 Друзья")
+        
         # Individual friend cards
         for friend_name, friend_info in AI_FRIENDS.items():
             is_active = st.session_state.selected_friend == friend_name
@@ -335,20 +349,7 @@ def main():
                 st.rerun()
     
     # Chat area - full width in main area
-    col_title, col_toggle = st.columns([4, 1])
-    
-    with col_title:
-        st.markdown("### 💬 Чат с друзьями")
-    
-    with col_toggle:
-        st.markdown("<div style='padding: 6px 0 0 0;'></div>", unsafe_allow_html=True)
-        if 'live_mode' not in st.session_state:
-            st.session_state.live_mode = False
-        
-        live_mode_text = "Живая тусовка: ВКЛ 🔥" if st.session_state.live_mode else "Живая тусовка: ВЫКЛ"
-        if st.button(live_mode_text, key="live_mode_toggle"):
-            st.session_state.live_mode = not st.session_state.live_mode
-            st.rerun()
+    st.markdown("### 💬 Чат с друзьями")
     
     # Live mode logic
     if st.session_state.live_mode:
