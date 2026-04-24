@@ -108,12 +108,6 @@ def main():
         border: none;
         color: white;
     }
-    .chat-container {
-        background: white;
-        border-radius: 28px;
-        padding: 32px;
-        box-shadow: 0 10px 40px rgba(0,0,0,0.08);
-    }
     </style>
     """, unsafe_allow_html=True)
     
@@ -251,9 +245,7 @@ def main():
         </div>
         """, unsafe_allow_html=True)
     else:
-        # Show chat-container only when messages exist
-        st.markdown('<div class="chat-container">', unsafe_allow_html=True)
-        
+        # Show messages without container wrapper
         for msg in messages:
             if msg['sender'] == 'user':
                 # User message - right side
@@ -279,8 +271,6 @@ def main():
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
-        
-        st.markdown('</div>', unsafe_allow_html=True)
     
     # Recipient indicator above input
     if st.session_state.selected_friend is None:
