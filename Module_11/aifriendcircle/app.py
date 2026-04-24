@@ -357,6 +357,21 @@ def main():
                 key="topic_selector"
             )
             
+            # Custom topic input (always visible)
+            st.markdown("**Или введи свою тему:**")
+            custom_topic = st.text_input(
+                "Твоя тема:",
+                placeholder="Например: Новые гаджеты Apple...",
+                key="custom_topic_input"
+            )
+            
+            # Apply custom topic button (always visible)
+            if st.button("📝 Применить тему", key="apply_custom_topic"):
+                if custom_topic.strip():
+                    st.session_state.user_selected_topic = custom_topic.strip()
+                    st.session_state.topic_changed = True
+                    st.rerun()
+            
             # Handle topic selection - trigger on change
             topic_changed = False
             
@@ -383,21 +398,6 @@ def main():
                 if st.session_state.user_selected_topic != mapped_topic:
                     st.session_state.user_selected_topic = mapped_topic
                     topic_changed = True
-            
-            # Custom topic input
-            st.markdown("**Или введи свою тему:**")
-            custom_topic = st.text_input(
-                "Твоя тема:",
-                placeholder="Например: Новые гаджеты Apple...",
-                key="custom_topic_input"
-            )
-            
-            # Apply custom topic button
-            if st.button("📝 Применить тему", key="apply_custom_topic"):
-                if custom_topic.strip():
-                    st.session_state.user_selected_topic = custom_topic.strip()
-                    st.session_state.topic_changed = True
-                    st.rerun()
             
             # Rerun if topic changed
             if topic_changed:
