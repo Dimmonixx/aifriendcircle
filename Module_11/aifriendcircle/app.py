@@ -103,6 +103,12 @@ def main():
         border: none;
         color: white;
     }
+    .chat-container {
+        background: white;
+        border-radius: 28px;
+        padding: 32px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.08);
+    }
     </style>
     """, unsafe_allow_html=True)
     
@@ -229,6 +235,7 @@ def main():
     st.markdown("### 💬 Чат с друзьями")
     
     # Message history
+    st.markdown('<div class="chat-container">', unsafe_allow_html=True)
     chat_container = st.container()
     with chat_container:
         # Always show group messages
@@ -345,6 +352,8 @@ def main():
         # Clear input field
         st.session_state.input_key += 1
         st.rerun()
+    
+    st.markdown('</div>', unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
