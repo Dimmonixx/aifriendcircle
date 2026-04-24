@@ -329,82 +329,6 @@ def main():
         
         st.markdown("---")
         
-        # User topic selection (only in live mode)
-        if st.session_state.live_mode:
-            st.markdown("### 📰 Тема дня")
-            
-            # Initialize user_selected_topic if not exists
-            if 'user_selected_topic' not in st.session_state:
-                st.session_state.user_selected_topic = None
-            
-            # Topic selection
-            topic_options = [
-                "🎲 Случайная тема",
-                "💻 Технологии и инновации",
-                "🍳 Еда и кулинария",
-                "🌤️ Погода и климат",
-                "🎬 Кино и сериалы",
-                "✈️ Путешествия",
-                "💰 Криптовалюты и инвестиции",
-                "💪 Здоровье и фитнес",
-                "💼 Работа и карьера",
-                "❤️ Отношения и психология"
-            ]
-            
-            selected_topic = st.selectbox(
-                "Выбери тему:",
-                options=topic_options,
-                key="topic_selector"
-            )
-            
-            # Custom topic input (always visible)
-            st.markdown("**Или введи свою тему:**")
-            custom_topic = st.text_input(
-                "Твоя тема:",
-                placeholder="Например: Новые гаджеты Apple...",
-                key="custom_topic_input"
-            )
-            
-            # Apply custom topic button (always visible)
-            if st.button("📝 Применить тему", key="apply_custom_topic"):
-                if custom_topic.strip():
-                    st.session_state.user_selected_topic = custom_topic.strip()
-                    st.session_state.topic_changed = True
-                    st.rerun()
-            
-            # Handle topic selection - trigger on change
-            topic_changed = False
-            
-            # Check if selectbox changed
-            if selected_topic == "🎲 Случайная тема":
-                if st.session_state.user_selected_topic is not None:
-                    st.session_state.user_selected_topic = None
-                    topic_changed = True
-            else:
-                # Map emoji topics to actual topic text
-                topic_mapping = {
-                    "💻 Технологии и инновации": "Технологии: последние тренды и инновации",
-                    "🍳 Еда и кулинария": "Еда и кулинария: новые рецепты и тренды",
-                    "🌤️ Погода и климат": "Погода и климат: что происходит с планетой",
-                    "🎬 Кино и сериалы": "Кино и сериалы: что посмотреть в этом месяце",
-                    "✈️ Путешествия": "Путешествия: лучшие направления для отпуска",
-                    "💰 Криптовалюты и инвестиции": "Криптовалюты: стоит ли инвестировать в 2024 году",
-                    "💪 Здоровье и фитнес": "Здоровый образ жизни: мифы и реальность",
-                    "💼 Работа и карьера": "Работа и карьера: как найти призвание",
-                    "❤️ Отношения и психология": "Отношения: психология современности"
-                }
-                
-                mapped_topic = topic_mapping.get(selected_topic, selected_topic)
-                if st.session_state.user_selected_topic != mapped_topic:
-                    st.session_state.user_selected_topic = mapped_topic
-                    topic_changed = True
-            
-            # Rerun if topic changed
-            if topic_changed:
-                st.rerun()
-        
-        st.markdown("---")
-        
         # Friends list in sidebar
         st.markdown("### 👥 Друзья")
         
@@ -423,6 +347,80 @@ def main():
     
     # Chat area - full width in main area
     st.markdown("### 💬 Чат с друзьями")
+    
+    # Topic selection area (only in live mode)
+    if st.session_state.live_mode:
+        st.markdown("### 📰 Тема дня")
+        
+        # Initialize user_selected_topic if not exists
+        if 'user_selected_topic' not in st.session_state:
+            st.session_state.user_selected_topic = None
+        
+        # Two columns for topic selection
+        col1, col2 = st.columns([1, 1])
+        
+        with col1:
+            # Preset topics
+            st.markdown("**📋 Выбери тему:**")
+            topic_options = [
+                "🎲 Случайная тема",
+                "💻 Технологии и инновации",
+                "🍳 Еда и кулинария",
+                "🌤️ Погода и климат",
+                "🎬 Кино и сериалы",
+                "✈️ Путешествия",
+                "💰 Криптовалюты и инвестиции",
+                "💪 Здоровье и фитнес",
+                "💼 Работа и карьера",
+                "❤️ Отношения и психология"
+            ]
+            
+            selected_topic = st.selectbox(
+                "Тема:",
+                options=topic_options,
+                key="topic_selector",
+                index=0
+            )
+            
+            # Handle preset topic selection
+            if selected_topic != "🎲 Случайная тема":
+                topic_mapping = {
+                    "💻 Технологии и инновации": "Технологии: последние тренды и инновации",
+                    "🍳 Еда и кулинария": "Еда и кулинария: новые рецепты и тренды",
+                    "🌤️ Погода и климат": "Погода и климат: что происходит с планетой",
+                    "🎬 Кино и сериалы": "Кино и сериалы: что посмотреть в этом месяце",
+                    "✈️ Путешествия": "Путешествия: лучшие направления для отпуска",
+                    "💰 Криптовалюты и инвестиции": "Криптовалюты: стоит ли инвестировать в 2024 году",
+                    "💪 Здоровье и фитнес": "Здоровый образ жизни: мифы и реальность",
+                    "💼 Работа и карьера": "Работа и карьера: как найти призвание",
+                    "❤️ Отношения и психология": "Отношения: психология современности"
+                }
+                
+                mapped_topic = topic_mapping.get(selected_topic, selected_topic)
+                if st.session_state.user_selected_topic != mapped_topic:
+                    st.session_state.user_selected_topic = mapped_topic
+                    st.rerun()
+            else:
+                if st.session_state.user_selected_topic is not None:
+                    st.session_state.user_selected_topic = None
+                    st.rerun()
+        
+        with col2:
+            # Custom topic
+            st.markdown("**✏️ Своя тема:**")
+            custom_topic = st.text_area(
+                "Введи свою тему:",
+                placeholder="Например: Новые гаджеты Apple 2024: инновации и тренды...",
+                key="custom_topic_input",
+                height=100
+            )
+            
+            if st.button("🚀 Применить тему", key="apply_custom_topic", use_container_width=True):
+                if custom_topic.strip():
+                    st.session_state.user_selected_topic = custom_topic.strip()
+                    st.rerun()
+        
+        st.markdown("---")
     
     # Live mode logic
     if st.session_state.live_mode:
