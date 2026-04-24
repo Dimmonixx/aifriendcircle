@@ -239,13 +239,11 @@ def main():
     # Chat area - full width in main area
     st.markdown("### 💬 Чат с друзьями")
     
-    # Message history
-    st.markdown('<div class="chat-container">', unsafe_allow_html=True)
-    
     # Always show group messages
     messages = st.session_state.chat_history.get('group', [])
     
     if not messages:
+        # Show empty state without white background
         st.markdown("""
         <div style="text-align: center; padding: 40px; color: #666;">
             <div style="font-size: 24px; margin-bottom: 10px;">👥</div>
@@ -253,6 +251,9 @@ def main():
         </div>
         """, unsafe_allow_html=True)
     else:
+        # Show chat-container only when messages exist
+        st.markdown('<div class="chat-container">', unsafe_allow_html=True)
+        
         for msg in messages:
             if msg['sender'] == 'user':
                 # User message - right side
@@ -278,8 +279,8 @@ def main():
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
-    
-    st.markdown('</div>', unsafe_allow_html=True)
+        
+        st.markdown('</div>', unsafe_allow_html=True)
     
     # Recipient indicator above input
     if st.session_state.selected_friend is None:
