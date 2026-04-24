@@ -76,7 +76,6 @@ def generate_daily_topic():
         "Спорт и фитнес: мотивация и результаты"
     ]
     
-    import random
     return random.choice(topics)
 
 
@@ -420,7 +419,6 @@ def main():
             current_time - st.session_state.last_response_time > 120 and  # 2 minutes
             not st.session_state.get('pending_responders')):  # No pending queue
             with st.spinner("Друзья общаются..."):
-                import random
                 friend_name = random.choice(list(AI_FRIENDS.keys()))
                 
                 # Create context-aware message
