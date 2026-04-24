@@ -103,6 +103,11 @@ def main():
         border: none;
         color: white;
     }
+    [data-testid="stSidebar"] ~ div .stButton > button {
+        background: linear-gradient(135deg, #7c3aed, #a855f7);
+        border: none;
+        color: white;
+    }
     .chat-container {
         background: white;
         border-radius: 28px;
@@ -236,8 +241,7 @@ def main():
     
     # Message history
     st.markdown('<div class="chat-container">', unsafe_allow_html=True)
-    chat_container = st.container()
-    with chat_container:
+    with st.container():
         # Always show group messages
         messages = st.session_state.chat_history.get('group', [])
         
