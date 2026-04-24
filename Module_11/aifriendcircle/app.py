@@ -286,7 +286,17 @@ def main():
         recipient_text = f"Пишешь: {st.session_state.selected_friend} {friend['avatar']}"
         placeholder_text = f"Напишите {st.session_state.selected_friend}..."
     
-    st.markdown(f"**{recipient_text}**")
+    st.markdown(f"""
+<div style="
+    display: inline-block;
+    background: linear-gradient(135deg, #7c3aed, #a855f7);
+    color: white;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 13px;
+    margin-bottom: 8px;
+">✍️ {recipient_text}</div>
+""", unsafe_allow_html=True)
     
     # Initialize input key for Enter support
     if 'input_key' not in st.session_state:
