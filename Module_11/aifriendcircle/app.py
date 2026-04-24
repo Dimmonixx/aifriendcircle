@@ -422,8 +422,8 @@ def main():
     
     # Live mode logic
     if st.session_state.live_mode:
-        # Generate daily topic if not exists
-        if not st.session_state.daily_topic:
+        # Generate daily topic only if user has selected one or custom topic
+        if not st.session_state.daily_topic and st.session_state.user_selected_topic:
             with st.spinner("Создаю тему дня..."):
                 topic = generate_daily_topic()
                 st.session_state.daily_topic = topic
