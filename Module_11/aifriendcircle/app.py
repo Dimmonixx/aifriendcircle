@@ -57,6 +57,10 @@ AI_FRIENDS = {
 
 def generate_daily_topic():
     """Generate daily topic for live chat mode"""
+    # Check if user has selected a custom topic
+    if 'user_selected_topic' in st.session_state and st.session_state.user_selected_topic:
+        return st.session_state.user_selected_topic
+    
     topics = [
         "Новые гаджеты 2024: что уже вышло и чего ждать",
         "Искусственный интеллект в повседневной жизни: польза или вред?",
@@ -329,6 +333,71 @@ def main():
         if st.button(live_mode_text, key="sidebar_live_mode_toggle", use_container_width=True):
             st.session_state.live_mode = not st.session_state.live_mode
             st.rerun()
+        
+        st.markdown("---")
+        
+        # User topic selection (only in live mode)
+        if st.session_state.live_mode:
+            st.markdown("### 📰 Тема дня")
+            
+            # Initialize user_selected_topic if not exists
+            if 'user_selected_topic' not in st.session_state:
+                st.session_state.user_selected_topic = None
+            
+            # Topic selection
+            topic_options = [
+                "🎲 Случайная тема",
+                "💻 Технологии и инновации",
+                "🍳 Еда и кулинария",
+                "🌤️ Погода и климат",
+                "🎬 Кино и сериалы",
+                "✈️ Путешествия",
+                "💰 Криптовалюты и инвестиции",
+                "💪 Здоровье и фитнес",
+                "💼 Работа и карьера",
+                "❤️ Отношения и психология"
+            ]
+            
+            selected_topic = st.selectbox(
+                "Выбери тему:",
+                options=topic_options,
+                key="topic_selector"
+            )
+            
+            # Handle custom topic input
+            if selected_topic == "🎲 Случайная тема":
+                st.session_state.user_selected_topic = None
+            else:
+                # Map emoji topics to actual topic text
+                topic_mapping = {
+                    "💻 Технологии и инновации": "Технологии: последние тренды и инновации",
+                    "🍳 Еда и кулинария": "Еда и кулинария: новые рецепты и тренды",
+                    "🌤️ Погода и климат": "Погода и климат: что происходит с планетой",
+                    "🎬 Кино и сериалы": "Кино и сериалы: что посмотреть в этом месяце",
+                    "✈️ Путешествия": "Путешествия: лучшие направления для отпуска",
+                    "💰 Криптовалюты и инвестиции": "Криптовалюты: стоит ли инвестировать в 2024 году",
+                    "💪 Здоровье и фитнес": "Здоровый образ жизни: мифы и реальность",
+                    "💼 Работа и карьера": "Работа и карьера: как найти призвание",
+                    "❤️ Отношения и психология": "Отношения: психология современности"
+                }
+                
+                if selected_topic in topic_mapping:
+                    st.session_state.user_selected_topic = topic_mapping[selected_topic]
+                else:
+                    st.session_state.user_selected_topic = selected_topic
+            
+            # Custom topic input
+            st.markdown("**Или введи свою тему:**")
+            custom_topic = st.text_input(
+                "Твоя тема:",
+                placeholder="Например: Новые гаджеты Apple...",
+                key="custom_topic_input"
+            )
+            
+            if st.button("📝 Применить тему", key="apply_custom_topic"):
+                if custom_topic.strip():
+                    st.session_state.user_selected_topic = custom_topic.strip()
+                    st.rerun()
         
         st.markdown("---")
         
