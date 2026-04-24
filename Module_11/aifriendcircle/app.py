@@ -108,6 +108,11 @@ def main():
         border: none;
         color: white;
     }
+    .block-container {
+        padding-top: 1rem;
+        padding-bottom: 1rem;
+    }
+    header {display: none;}
     </style>
     """, unsafe_allow_html=True)
     
