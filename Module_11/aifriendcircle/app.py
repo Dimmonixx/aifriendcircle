@@ -86,6 +86,9 @@ def generate_initial_conversation(topic):
         import random
         selected_friends = random.sample(list(AI_FRIENDS.keys()), 3)
         
+        # Shuffle the order of responding friends
+        random.shuffle(selected_friends)
+        
         conversation_prompt = f"""
 Сгенерируй начальный диалог между {selected_friends[0]}, {selected_friends[1]} и {selected_friends[2]} на тему "{topic}".
 
@@ -95,6 +98,7 @@ def generate_initial_conversation(topic):
 3. 3-4 сообщения всего
 4. Каждый должен реагировать на предыдущего
 5. Используй их аватары и манеру речи
+6. Порядок ответов: {selected_friends[0]} → {selected_friends[1]} → {selected_friends[2]}
 
 Верни ответ в формате JSON:
 [
@@ -120,9 +124,10 @@ def generate_initial_conversation(topic):
         )
         
         import json
-        return json.loads(response.choices[0].message.content)
+        messages = json.loads(response.choices[0].message.content)
+        return messages, selected_friends
     except Exception as e:
-        return []
+        return [], []
 
 def get_ai_response(friend_name, message, chat_history=None):
     try:
@@ -381,17 +386,41 @@ def main():
                 st.session_state.daily_topic = topic
                 
                 # Generate initial conversation about the topic
-                initial_messages = generate_initial_conversation(topic)
+                initial_messages, selected_friends = generate_initial_conversation(topic)
                 
-                # Add initial messages to chat
+                # Add initial messages to chat one by one with delays
                 if 'group' not in st.session_state.chat_history:
                     st.session_state.chat_history['group'] = []
                 
-                for msg in initial_messages:
-                    st.session_state.chat_history['group'].append(msg)
-                
-                # Set initial auto-message time
+                # Store pending messages for sequential display
+                st.session_state.pending_messages = initial_messages
+                st.session_state.current_message_index = 0
                 st.session_state.last_auto_message_time = time.time()
+                
+                # Add first message immediately
+                if st.session_state.pending_messages and st.session_state.current_message_index < len(st.session_state.pending_messages):
+                    msg = st.session_state.pending_messages[st.session_state.current_message_index]
+                    st.session_state.chat_history['group'].append(msg)
+                    st.session_state.current_message_index += 1
+                    st.rerun()
+        
+        # Check if we need to add more pending messages
+        if hasattr(st.session_state, 'pending_messages') and st.session_state.pending_messages:
+            if st.session_state.current_message_index < len(st.session_state.pending_messages):
+                # Check if enough time has passed since last message
+                time_since_last = time.time() - st.session_state.last_auto_message_time
+                if time_since_last >= random.uniform(0.5, 2.5):
+                    # Add next message
+                    msg = st.session_state.pending_messages[st.session_state.current_message_index]
+                    st.session_state.chat_history['group'].append(msg)
+                    st.session_state.current_message_index += 1
+                    st.session_state.last_auto_message_time = time.time()
+                    
+                    # Clear pending messages if all are added
+                    if st.session_state.current_message_index >= len(st.session_state.pending_messages):
+                        st.session_state.pending_messages = []
+                    
+                    st.rerun()
         
         # Display daily topic
         if st.session_state.daily_topic:
@@ -402,10 +431,11 @@ def main():
             </div>
             """, unsafe_allow_html=True)
         
-        # Auto-messages from friends every 2-3 minutes
+        # Auto-messages from friends every 2-3 minutes (only if no pending messages)
         current_time = time.time()
         if (st.session_state.last_auto_message_time and 
-            current_time - st.session_state.last_auto_message_time > 120):  # 2 minutes
+            current_time - st.session_state.last_auto_message_time > 120 and  # 2 minutes
+            not hasattr(st.session_state, 'pending_messages')):  # No pending messages
             with st.spinner("Друзья общаются..."):
                 import random
                 friend_name = random.choice(list(AI_FRIENDS.keys()))
