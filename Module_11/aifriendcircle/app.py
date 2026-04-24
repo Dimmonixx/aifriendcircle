@@ -116,35 +116,49 @@ def main():
     
     # Check if user is logged in
     if not st.session_state.logged_in:
-        # Login form
-        st.subheader("🔐 Вход в Friend Circle")
-        
-        user_name = st.text_input(
-            "Ваше имя:",
-            placeholder="Как тебя будут называть друзья...",
-            help="Введите имя, которое будут использовать друзья при обращении"
-        )
-        
-        password = st.text_input(
-            "Пароль:",
-            type="password",
-            help="Введите пароль для доступа к приложению"
-        )
-        
-        if st.button("Войти в Friend Circle", type="primary", use_container_width=True):
-            if not user_name.strip():
-                st.error("Введите ваше имя!")
-            elif not password.strip():
-                st.error("Введите пароль!")
-            elif password.strip() != st.secrets["APP_PASSWORD"]:
-                st.error("Неверный пароль!")
-            else:
-                st.session_state.logged_in = True
-                st.session_state.user_name = user_name.strip()
-                st.session_state.api_key = st.secrets["DEEPSEEK_API_KEY"]
-                st.success(f"Добро пожаловать в Friend Circle, {user_name.strip()}!")
-                st.rerun()
-        return
+        # Check if username exists in query_params (page refresh scenario)
+        query_params = st.query_params
+        if "user" in query_params and query_params["user"]:
+            # Auto-login if username exists in query params
+            st.session_state.logged_in = True
+            st.session_state.user_name = query_params["user"]
+            st.session_state.api_key = st.secrets["DEEPSEEK_API_KEY"]
+        else:
+            # Login form
+            st.subheader("🔐 Вход в Friend Circle")
+            
+            user_name = st.text_input(
+                "Ваше имя:",
+                placeholder="Как тебя будут называть друзья...",
+                help="Введите имя, которое будут использовать друзья при обращении"
+            )
+            
+            password = st.text_input(
+                "Пароль:",
+                type="password",
+                help="Введите пароль для доступа к приложению"
+            )
+            
+            if st.button("Войти в Friend Circle", type="primary", use_container_width=True):
+                if not user_name.strip():
+                    st.error("Введите ваше имя!")
+                elif not password.strip():
+                    st.error("Введите пароль!")
+                elif password.strip() != st.secrets["APP_PASSWORD"]:
+                    st.error("Неверный пароль!")
+                else:
+                    st.session_state.logged_in = True
+                    st.session_state.user_name = user_name.strip()
+                    st.session_state.api_key = st.secrets["DEEPSEEK_API_KEY"]
+                    # Set query params to preserve login
+                    st.query_params["user"] = user_name.strip()
+                    st.success(f"Добро пожаловать в Friend Circle, {user_name.strip()}!")
+                    st.rerun()
+            return
+    
+    # Update query params if logged in but not in params
+    if "user" not in st.query_params or st.query_params["user"] != st.session_state.user_name:
+        st.query_params["user"] = st.session_state.user_name
     
     # User is logged in - show greeting and profile menu
     col1, col2 = st.columns([4, 1])
@@ -297,13 +311,8 @@ def main():
         st.markdown(f"**{recipient_text}**")
         
         # Message input
-        user_message = st.text_input(
-            "Сообщение:",
-            placeholder=placeholder_text,
-            key="unified_chat_input"
-        )
-        
-        if st.button("📤 Отправить", type="primary", use_container_width=True):
+        def send_message():
+            user_message = st.session_state.get("unified_chat_input", "")
             if user_message.strip():
                 if st.session_state.selected_friend is None:
                     # Group message
@@ -359,7 +368,18 @@ def main():
                             'timestamp': 'now'
                         })
                 
+                # Clear input field
+                st.session_state["unified_chat_input"] = ""
                 st.rerun()
+        
+        user_message = st.text_input(
+            "Сообщение:",
+            placeholder=placeholder_text,
+            key="unified_chat_input",
+            on_change=send_message
+        )
+        
+        st.button("📤 Отправить", type="primary", use_container_width=True, on_click=send_message)
 
 if __name__ == "__main__":
     main()
