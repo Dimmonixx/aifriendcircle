@@ -125,25 +125,25 @@ def main():
             help="Введите имя, которое будут использовать друзья при обращении"
         )
         
-        api_key = st.text_input(
-            "API ключ DeepSeek:",
+        password = st.text_input(
+            "Пароль:",
             type="password",
-            help="Введите ваш API ключ от DeepSeek для общения с друзьями"
+            help="Введите пароль для доступа к приложению"
         )
         
         if st.button("Войти в Friend Circle", type="primary", use_container_width=True):
             if not user_name.strip():
                 st.error("Введите ваше имя!")
-            elif not api_key.strip():
-                st.error("Введите API ключ!")
+            elif not password.strip():
+                st.error("Введите пароль!")
+            elif password.strip() != st.secrets["APP_PASSWORD"]:
+                st.error("Неверный пароль!")
             else:
                 st.session_state.logged_in = True
                 st.session_state.user_name = user_name.strip()
-                st.session_state.api_key = api_key.strip()
-                st.success(f"Добро пожаловать в Friend Circle, {user_name.strip()}! �")
+                st.session_state.api_key = st.secrets["DEEPSEEK_API_KEY"]
+                st.success(f"Добро пожаловать в Friend Circle, {user_name.strip()}!")
                 st.rerun()
-        
-        st.info("💡 Нужен API ключ? Получите его на [deepseek.com](https://platform.deepseek.com)")
         return
     
     # User is logged in - show greeting and profile menu
