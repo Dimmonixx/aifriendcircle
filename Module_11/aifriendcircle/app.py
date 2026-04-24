@@ -394,9 +394,10 @@ def main():
             
             # Apply custom topic button
             if st.button("📝 Применить тему", key="apply_custom_topic"):
-                if custom_topic.strip() and st.session_state.user_selected_topic != custom_topic.strip():
+                if custom_topic.strip():
                     st.session_state.user_selected_topic = custom_topic.strip()
-                    topic_changed = True
+                    st.session_state.topic_changed = True
+                    st.rerun()
             
             # Rerun if topic changed
             if topic_changed:
