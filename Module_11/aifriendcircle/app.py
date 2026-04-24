@@ -146,6 +146,13 @@ def main():
         padding-bottom: 1rem;
     }
     header {display: none;}
+    
+    /* Change text input focus color from red to purple */
+    .stTextInput > div > div > input:focus,
+    .stTextArea > div > div > textarea:focus {
+        border-color: #7c3aed !important;
+        box-shadow: 0 0 0 1px #7c3aed !important;
+    }
     </style>
     """, unsafe_allow_html=True)
     
