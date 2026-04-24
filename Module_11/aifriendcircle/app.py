@@ -1,6 +1,7 @@
 import streamlit as st
 from openai import OpenAI
 import random
+import time
 
 # AI Friends personalities
 AI_FRIENDS = {
@@ -54,33 +55,105 @@ AI_FRIENDS = {
     }
 }
 
-def get_ai_response(api_key, friend_name, user_message, detailed=False):
-    """Get AI response from DeepSeek API"""
+def generate_daily_topic():
+    """Generate daily topic for live chat mode"""
+    topics = [
+        "Новые гаджеты 2024: что уже вышло и чего ждать",
+        "Искусственный интеллект в повседневной жизни: польза или вред?",
+        "Криптовалюты: стоит ли инвестировать в 2024 году",
+        "Здоровый образ жизни: мифы и реальность",
+        "Путешествия: лучшие направления для отпуска",
+        "Кино и сериалы: что посмотреть в этом месяце",
+        "Технологии: последние тренды и инновации",
+        "Еда и кулинария: новые рецепты и тренды",
+        "Погода и климат: что происходит с планетой",
+        "Работа и карьера: как найти призвание",
+        "Отношения: психология современности",
+        "Спорт и фитнес: мотивация и результаты"
+    ]
+    
+    import random
+    return random.choice(topics)
+
+def generate_initial_conversation(topic):
+    """Generate initial conversation between friends about topic"""
     try:
+        # Select 3 random friends for initial conversation
+        import random
+        selected_friends = random.sample(list(AI_FRIENDS.keys()), 3)
+        
+        conversation_prompt = f"""
+Сгенерируй начальный диалог между {selected_friends[0]}, {selected_friends[1]} и {selected_friends[2]} на тему "{topic}".
+
+Правила:
+1. Каждый друг говорит согласно своему характеру из AI_FRIENDS
+2. Диалог должен быть живым и естественным
+3. 3-4 сообщения всего
+4. Каждый должен реагировать на предыдущего
+5. Используй их аватары и манеру речи
+
+Верни ответ в формате JSON:
+[
+    {{"sender": "{selected_friends[0]}", "text": "..."}},
+    {{"sender": "{selected_friends[1]}", "text": "..."}},
+    {{"sender": "{selected_friends[2]}", "text": "..."}}
+]
+"""
+        
         client = OpenAI(
-            api_key=api_key,
+            api_key=st.secrets["DEEPSEEK_API_KEY"],
             base_url="https://api.deepseek.com"
         )
-        
-        friend = AI_FRIENDS[friend_name]
-        
-        if detailed:
-            prompt = f"Дай развёрнутый ответ (5-7 предложений) на сообщение пользователя: '{user_message}'. {friend['system_prompt']}"
-        else:
-            prompt = f"Дай короткую реакцию (1-2 предложения) на сообщение пользователя: '{user_message}'. {friend['system_prompt']}"
         
         response = client.chat.completions.create(
             model="deepseek-chat",
             messages=[
-                {"role": "system", "content": friend['system_prompt']},
-                {"role": "user", "content": prompt}
+                {"role": "system", "content": "Ты - создатель живых диалогов между друзьями-персонажами. Создавай естественные и интересные разговоры."},
+                {"role": "user", "content": conversation_prompt}
             ],
-            max_tokens=200 if detailed else 100,
+            max_tokens=1500,
+            temperature=0.8
+        )
+        
+        import json
+        return json.loads(response.choices[0].message.content)
+    except Exception as e:
+        return []
+
+def get_ai_response(friend_name, message, chat_history=None):
+    try:
+        friend = AI_FRIENDS[friend_name]
+        system_prompt = friend['system_prompt']
+        
+        # Format chat history for context (handle both list and None)
+        if chat_history is None:
+            chat_history = []
+        
+        formatted_history = []
+        for msg in chat_history[-10:]:  # Last 10 messages for context
+            if msg['sender'] == 'user':
+                formatted_history.append(f"Пользователь: {msg['text']}")
+            else:
+                formatted_history.append(f"{msg['sender']}: {msg['text']}")
+        
+        history_text = "\n".join(formatted_history)
+        
+        client = OpenAI(
+            api_key=st.secrets["DEEPSEEK_API_KEY"],
+            base_url="https://api.deepseek.com"
+        )
+        
+        response = client.chat.completions.create(
+            model="deepseek-chat",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": f"Контекст чата:\n{history_text}\n\nТекущее сообщение: {message}"}
+            ],
+            max_tokens=1000,
             temperature=0.7
         )
         
-        return response.choices[0].message.content.strip()
-        
+        return response.choices[0].message.content
     except Exception as e:
         return f"Ошибка: {str(e)}"
 
@@ -133,9 +206,18 @@ def main():
         st.session_state.selected_recipient = 'Всем'
     if 'active_chat' not in st.session_state:
         st.session_state.active_chat = None
+    if 'live_mode' not in st.session_state:
+        st.session_state.live_mode = False
+    if 'daily_topic' not in st.session_state:
+        st.session_state.daily_topic = None
+    if 'last_auto_message_time' not in st.session_state:
+        st.session_state.last_auto_message_time = None
     
-    # Title
-    st.markdown("""
+    # Title with live mode toggle
+    col_title, col_toggle = st.columns([4, 1])
+    
+    with col_title:
+        st.markdown("""
 <div style="padding: 24px 0 16px 0;">
     <span style="font-size: 28px; font-weight: 700; 
     color: #4c1d95;">👥 AI Friend Circle</span>
@@ -143,6 +225,17 @@ def main():
     margin-left: 12px;">Общайся с друзьями с разными характерами!</span>
 </div>
 """, unsafe_allow_html=True)
+    
+    with col_toggle:
+        st.markdown("<div style='padding: 24px 0 0 0;'></div>", unsafe_allow_html=True)
+        if 'live_mode' not in st.session_state:
+            st.session_state.live_mode = False
+        
+        live_mode_text = "Живая тусовка: ВКЛ 🔥" if st.session_state.live_mode else "Живая тусовка: ВЫКЛ"
+        if st.button(live_mode_text, key="live_mode_toggle"):
+            st.session_state.live_mode = not st.session_state.live_mode
+            st.rerun()
+    
     st.markdown("---")
     
     # Check if user is logged in
@@ -243,6 +336,67 @@ def main():
     
     # Chat area - full width in main area
     st.markdown("### 💬 Чат с друзьями")
+    
+    # Live mode logic
+    if st.session_state.live_mode:
+        # Generate daily topic if not exists
+        if not st.session_state.daily_topic:
+            with st.spinner("Создаю тему дня..."):
+                topic = generate_daily_topic()
+                st.session_state.daily_topic = topic
+                
+                # Generate initial conversation about the topic
+                initial_messages = generate_initial_conversation(topic)
+                
+                # Add initial messages to chat
+                if 'group' not in st.session_state.chat_history:
+                    st.session_state.chat_history['group'] = []
+                
+                for msg in initial_messages:
+                    st.session_state.chat_history['group'].append(msg)
+                
+                # Set initial auto-message time
+                st.session_state.last_auto_message_time = time.time()
+        
+        # Display daily topic
+        if st.session_state.daily_topic:
+            st.markdown(f"""
+            <div style="background: linear-gradient(135deg, #f59e0b, #ef4444); color: white; padding: 12px; border-radius: 8px; margin-bottom: 16px; text-align: center;">
+                <div style="font-size: 16px; font-weight: bold;">📰 Тема дня</div>
+                <div style="font-size: 14px; margin-top: 8px;">{st.session_state.daily_topic}</div>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        # Auto-messages from friends every 2-3 minutes
+        current_time = time.time()
+        if (st.session_state.last_auto_message_time and 
+            current_time - st.session_state.last_auto_message_time > 120):  # 2 minutes
+            with st.spinner("Друзья общаются..."):
+                import random
+                friend_name = random.choice(list(AI_FRIENDS.keys()))
+                
+                # Create context-aware message
+                context_messages = [msg for msg in st.session_state.chat_history.get('group', [])[-5:]]
+                context_text = "\n".join([f"{msg['sender']}: {msg['text']}" for msg in context_messages])
+                
+                auto_prompt = f"""
+Ты - {friend_name}. Продолжай обсуждение темы дня "{st.session_state.daily_topic}". 
+Учитывай всю историю разговора:
+{context_text}
+
+Отвечай естественно, согласно своему характеру. Не упоминай что ты ИИ.
+"""
+                
+                response = get_ai_response(friend_name, auto_prompt, [])
+                if response and not response.startswith("Ошибка:"):
+                    st.session_state.chat_history['group'].append({
+                        'sender': friend_name,
+                        'text': response,
+                        'recipient': 'Всем',
+                        'timestamp': 'now'
+                    })
+                    st.session_state.last_auto_message_time = current_time
+                    st.rerun()
     
     # Always show group messages
     messages = st.session_state.chat_history.get('group', [])
@@ -345,30 +499,34 @@ def main():
         
         # Generate responses
         if st.session_state.selected_friend is None:
-            # All friends respond
+            # All friends respond (considering full conversation history in live mode)
             with st.spinner("Друзья думают над ответами..."):
                 for friend_name in AI_FRIENDS.keys():
+                    # Get full conversation history for context
+                    full_history = st.session_state.chat_history.get('group', [])
                     response = get_ai_response(
-                        st.session_state.api_key,
                         friend_name,
                         user_message.strip(),
-                        detailed=False
+                        full_history
                     )
                     
-                    st.session_state.chat_history['group'].append({
-                        'sender': friend_name,
-                        'text': response,
-                        'timestamp': 'now'
-                    })
+                    if response and not response.startswith("Ошибка:"):
+                        st.session_state.chat_history['group'].append({
+                            'sender': friend_name,
+                            'text': response,
+                            'recipient': 'Всем',
+                            'timestamp': 'now'
+                        })
         else:
             # Only selected friend responds
             friend_name = st.session_state.selected_friend
             with st.spinner(f"{friend_name} думает над ответом..."):
+                # Get full conversation history for context
+                full_history = st.session_state.chat_history.get('group', [])
                 response = get_ai_response(
-                    st.session_state.api_key,
                     friend_name,
                     user_message.strip(),
-                    detailed=False
+                    full_history
                 )
                 
                 st.session_state.chat_history['group'].append({
