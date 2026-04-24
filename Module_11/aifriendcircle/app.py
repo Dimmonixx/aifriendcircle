@@ -209,7 +209,7 @@ def main():
         # Group chat button
         group_active = st.session_state.selected_friend is None
         if st.button(
-            "&#128515; Все друзья\nГрупповой чат", 
+            "&#128515; Все друзья 🟢\nГрупповой чат", 
             key="group_chat_btn",
             type="primary" if group_active else "secondary",
             use_container_width=True
@@ -222,7 +222,7 @@ def main():
             is_active = st.session_state.selected_friend == friend_name
             
             if st.button(
-                f"{friend_info['avatar']} {friend_name}\n{friend_info['profession']}", 
+                f"{friend_info['avatar']} {friend_name} 🟢\n{friend_info['profession']}", 
                 key=f"chat_{friend_name}",
                 type="primary" if is_active else "secondary",
                 use_container_width=True
