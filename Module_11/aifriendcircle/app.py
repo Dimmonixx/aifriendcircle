@@ -400,8 +400,7 @@ def main():
                             'timestamp': 'now'
                         })
                 
-                # Clear input field and reset flag
-                st.session_state.unified_chat_input = ""
+                # Reset flag
                 st.session_state.should_send = False
                 st.rerun()
 
