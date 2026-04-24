@@ -308,6 +308,7 @@ def main():
     if 'input_key' not in st.session_state:
         st.session_state.input_key = 0
     
+    # Create columns for input and button
     col_msg, col_btn = st.columns([5, 1])
 
 with col_msg:
