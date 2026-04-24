@@ -325,15 +325,29 @@ def main():
         
         st.markdown(f"**{recipient_text}**")
         
-        # Message input
+        # Initialize input counter
+        if 'input_counter' not in st.session_state:
+            st.session_state.input_counter = 0
+        if 'should_send' not in st.session_state:
+            st.session_state.should_send = False
+        
+        # Message input with Enter support
+        def handle_input_change():
+            if st.session_state.get(f"msg_input_{st.session_state.input_counter}", "").strip():
+                st.session_state.should_send = True
+        
         user_message = st.text_input(
             "Сообщение:",
             placeholder=placeholder_text,
-            key="unified_chat_input"
+            key=f"msg_input_{st.session_state.input_counter}",
+            on_change=handle_input_change
         )
         
         if st.button("📤 Отправить", type="primary", use_container_width=True):
-            if user_message.strip():
+            st.session_state.should_send = True
+        
+        # Process message if should_send is True
+        if st.session_state.should_send and user_message.strip():
                 if st.session_state.selected_friend is None:
                     # Group message
                     if 'group' not in st.session_state.chat_history:
@@ -388,8 +402,10 @@ def main():
                             'timestamp': 'now'
                         })
                 
-                # Clear input field
-                st.session_state.unified_chat_input = ""
+                # Clear input field and increment counter
+                st.session_state[f"msg_input_{st.session_state.input_counter}"] = ""
+                st.session_state.input_counter += 1
+                st.session_state.should_send = False
                 st.rerun()
 
 if __name__ == "__main__":
