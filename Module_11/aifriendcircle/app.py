@@ -325,21 +325,19 @@ def main():
         
         st.markdown(f"**{recipient_text}**")
         
-        # Initialize input counter
-        if 'input_counter' not in st.session_state:
-            st.session_state.input_counter = 0
+        # Initialize send flag
         if 'should_send' not in st.session_state:
             st.session_state.should_send = False
         
         # Message input with Enter support
         def handle_input_change():
-            if st.session_state.get(f"msg_input_{st.session_state.input_counter}", "").strip():
+            if user_message.strip():
                 st.session_state.should_send = True
         
         user_message = st.text_input(
             "Сообщение:",
             placeholder=placeholder_text,
-            key=f"msg_input_{st.session_state.input_counter}",
+            key="unified_chat_input",
             on_change=handle_input_change
         )
         
@@ -402,9 +400,8 @@ def main():
                             'timestamp': 'now'
                         })
                 
-                # Clear input field and increment counter
-                st.session_state[f"msg_input_{st.session_state.input_counter}"] = ""
-                st.session_state.input_counter += 1
+                # Clear input field and reset flag
+                st.session_state.unified_chat_input = ""
                 st.session_state.should_send = False
                 st.rerun()
 
