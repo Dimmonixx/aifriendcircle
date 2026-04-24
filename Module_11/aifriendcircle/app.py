@@ -545,24 +545,13 @@ def main():
         
         # Generate responses
         if st.session_state.selected_friend is None:
-            # All friends respond (considering full conversation history in live mode)
-            with st.spinner("Друзья думают над ответами..."):
-                for friend_name in AI_FRIENDS.keys():
-                    # Get full conversation history for context
-                    full_history = st.session_state.chat_history.get('group', [])
-                    response = get_ai_response(
-                        friend_name,
-                        user_message.strip(),
-                        full_history
-                    )
-                    
-                    if response and not response.startswith("Ошибка:"):
-                        st.session_state.chat_history['group'].append({
-                            'sender': friend_name,
-                            'text': response,
-                            'recipient': 'Всем',
-                            'timestamp': 'now'
-                        })
+            # Запускаем очередь вместо мгновенных ответов
+            st.session_state.pending_responders = random.sample(
+                list(AI_FRIENDS.keys()), len(AI_FRIENDS)
+            )
+            st.session_state.pending_topic = user_message.strip()
+            st.session_state.last_response_time = time.time()
+            st.session_state.next_response_delay = random.uniform(1.5, 3.0)
         else:
             # Only selected friend responds
             friend_name = st.session_state.selected_friend
