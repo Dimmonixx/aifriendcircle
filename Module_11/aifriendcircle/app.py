@@ -290,13 +290,20 @@ def main():
     if 'input_key' not in st.session_state:
         st.session_state.input_key = 0
     
-    user_message = st.text_input(
-        "Сообщение:",
-        placeholder=placeholder_text,
-        key=f"msg_{st.session_state.input_key}"
-    )
+    # Input field and send button in same row
+    col_input, col_btn = st.columns([6, 1])
     
-    if st.button("📤 Отправить", type="primary", use_container_width=True) or user_message.strip():
+    with col_input:
+        user_message = st.text_input(
+            "Сообщение:",
+            placeholder=placeholder_text,
+            key=f"msg_{st.session_state.input_key}"
+        )
+    
+    with col_btn:
+        send_clicked = st.button("📤", type="primary", use_container_width=True)
+    
+    if send_clicked or user_message.strip():
         # All messages go to group chat with recipient field
         if 'group' not in st.session_state.chat_history:
             st.session_state.chat_history['group'] = []
