@@ -238,66 +238,81 @@ def main():
         # Message history
         chat_container = st.container()
         with chat_container:
-            # Get all messages from all chats
-            all_messages = []
-            
-            # Add group messages
-            if 'group' in st.session_state.chat_history:
-                for msg in st.session_state.chat_history['group']:
-                    all_messages.append({
-                        **msg,
-                        'chat_type': 'group'
-                    })
-            
-            # Add personal messages
-            for friend_name in AI_FRIENDS.keys():
-                if friend_name in st.session_state.chat_history:
-                    for msg in st.session_state.chat_history[friend_name]:
-                        all_messages.append({
-                            **msg,
-                            'chat_type': 'personal',
-                            'recipient': friend_name
-                        })
-            
-            # Sort messages by timestamp (simple order as they appear)
-            if not all_messages:
-                st.markdown("""
-                <div style="text-align: center; padding: 40px; color: #666;">
-                    <div style="font-size: 24px; margin-bottom: 10px;">👥</div>
-                    <div>Начни разговор с друзьями!</div>
-                </div>
-                """, unsafe_allow_html=True)
-            else:
-                for msg in all_messages:
-                    if msg['sender'] == 'user':
-                        # User message - right side
-                        if msg['chat_type'] == 'personal':
-                            recipient_text = f" → {msg['recipient']} (лично)"
-                        elif msg.get('recipient') and msg['recipient'] != 'Всем':
-                            recipient_text = f" → {msg['recipient']} (лично)"
+            # Get messages based on selected friend
+            if st.session_state.selected_friend is None:
+                # Show group messages
+                messages = st.session_state.chat_history.get('group', [])
+                
+                if not messages:
+                    st.markdown("""
+                    <div style="text-align: center; padding: 40px; color: #666;">
+                        <div style="font-size: 24px; margin-bottom: 10px;">👥</div>
+                        <div>Начни разговор с друзьями!</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                else:
+                    for msg in messages:
+                        if msg['sender'] == 'user':
+                            # User message - right side
+                            recipient_text = f" → {msg['recipient']} (лично)" if msg.get('recipient') and msg['recipient'] != 'Всем' else ""
+                            
+                            st.markdown(f"""
+                            <div style="display: flex; justify-content: flex-end; margin: 10px 0;">
+                                <div style="background-color: #E3F2FD; border-radius: 15px; padding: 10px 15px; max-width: 70%; border-top-right-radius: 5px;">
+                                    <div style="color: #1976D2; font-weight: bold; font-size: 12px;">Вы{recipient_text}</div>
+                                    <div style="color: #333;">{msg['text']}</div>
+                                </div>
+                            </div>
+                            """, unsafe_allow_html=True)
                         else:
-                            recipient_text = ""
-                        
-                        st.markdown(f"""
-                        <div style="display: flex; justify-content: flex-end; margin: 10px 0;">
-                            <div style="background-color: #E3F2FD; border-radius: 15px; padding: 10px 15px; max-width: 70%; border-top-right-radius: 5px;">
-                                <div style="color: #1976D2; font-weight: bold; font-size: 12px;">Вы{recipient_text}</div>
-                                <div style="color: #333;">{msg['text']}</div>
+                            # Friend message - left side with avatar
+                            friend = AI_FRIENDS[msg['sender']]
+                            st.markdown(f"""
+                            <div style="display: flex; justify-content: flex-start; margin: 10px 0;">
+                                <div style="font-size: 24px; margin-right: 10px; margin-top: 5px;">{friend['avatar']}</div>
+                                <div style="background-color: #f5f5f5; border-radius: 15px; padding: 10px 15px; max-width: 70%; border-top-left-radius: 5px; border: 1px solid #e0e0e0;">
+                                    <div style="color: #666; font-weight: bold; font-size: 12px;">{msg['sender']}</div>
+                                    <div style="color: #333;">{msg['text']}</div>
+                                </div>
                             </div>
-                        </div>
-                        """, unsafe_allow_html=True)
-                    else:
-                        # Friend message - left side with avatar
-                        friend = AI_FRIENDS[msg['sender']]
-                        st.markdown(f"""
-                        <div style="display: flex; justify-content: flex-start; margin: 10px 0;">
-                            <div style="font-size: 24px; margin-right: 10px; margin-top: 5px;">{friend['avatar']}</div>
-                            <div style="background-color: #f5f5f5; border-radius: 15px; padding: 10px 15px; max-width: 70%; border-top-left-radius: 5px; border: 1px solid #e0e0e0;">
-                                <div style="color: #666; font-weight: bold; font-size: 12px;">{msg['sender']}</div>
-                                <div style="color: #333;">{msg['text']}</div>
+                            """, unsafe_allow_html=True)
+            else:
+                # Show personal messages for selected friend
+                friend_name = st.session_state.selected_friend
+                messages = st.session_state.chat_history.get(friend_name, [])
+                
+                if not messages:
+                    friend = AI_FRIENDS[friend_name]
+                    st.markdown(f"""
+                    <div style="text-align: center; padding: 40px; color: #666;">
+                        <div style="font-size: 24px; margin-bottom: 10px;">{friend['avatar']}</div>
+                        <div>Начни разговор с {friend_name}!</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                else:
+                    for msg in messages:
+                        if msg['sender'] == 'user':
+                            # User message - right side
+                            st.markdown(f"""
+                            <div style="display: flex; justify-content: flex-end; margin: 10px 0;">
+                                <div style="background-color: #E3F2FD; border-radius: 15px; padding: 10px 15px; max-width: 70%; border-top-right-radius: 5px;">
+                                    <div style="color: #1976D2; font-weight: bold; font-size: 12px;">Вы</div>
+                                    <div style="color: #333;">{msg['text']}</div>
+                                </div>
                             </div>
-                        </div>
-                        """, unsafe_allow_html=True)
+                            """, unsafe_allow_html=True)
+                        else:
+                            # Friend message - left side with avatar
+                            friend = AI_FRIENDS[msg['sender']]
+                            st.markdown(f"""
+                            <div style="display: flex; justify-content: flex-start; margin: 10px 0;">
+                                <div style="font-size: 24px; margin-right: 10px; margin-top: 5px;">{friend['avatar']}</div>
+                                <div style="background-color: #f5f5f5; border-radius: 15px; padding: 10px 15px; max-width: 70%; border-top-left-radius: 5px; border: 1px solid #e0e0e0;">
+                                    <div style="color: #666; font-weight: bold; font-size: 12px;">{friend_name}</div>
+                                    <div style="color: #333;">{msg['text']}</div>
+                                </div>
+                            </div>
+                            """, unsafe_allow_html=True)
         
         # Recipient indicator above input
         if st.session_state.selected_friend is None:
@@ -311,8 +326,13 @@ def main():
         st.markdown(f"**{recipient_text}**")
         
         # Message input
-        def send_message():
-            user_message = st.session_state.get("unified_chat_input", "")
+        user_message = st.text_input(
+            "Сообщение:",
+            placeholder=placeholder_text,
+            key="unified_chat_input"
+        )
+        
+        if st.button("📤 Отправить", type="primary", use_container_width=True):
             if user_message.strip():
                 if st.session_state.selected_friend is None:
                     # Group message
@@ -369,17 +389,8 @@ def main():
                         })
                 
                 # Clear input field
-                st.session_state["unified_chat_input"] = ""
+                st.session_state.unified_chat_input = ""
                 st.rerun()
-        
-        user_message = st.text_input(
-            "Сообщение:",
-            placeholder=placeholder_text,
-            key="unified_chat_input",
-            on_change=send_message
-        )
-        
-        st.button("📤 Отправить", type="primary", use_container_width=True, on_click=send_message)
 
 if __name__ == "__main__":
     main()
