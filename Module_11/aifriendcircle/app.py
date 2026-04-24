@@ -135,8 +135,14 @@ def main():
         st.session_state.active_chat = None
     
     # Title
-    st.title("👥 AI Friend Circle")
-    st.markdown("*Общайся с друзьями с разными характерами!*")
+    st.markdown("""
+<div style="padding: 8px 0 16px 0;">
+    <span style="font-size: 28px; font-weight: 700; 
+    color: #4c1d95;">👥 AI Friend Circle</span>
+    <span style="font-size: 14px; color: #6b7280; 
+    margin-left: 12px;">Общайся с друзьями с разными характерами!</span>
+</div>
+""", unsafe_allow_html=True)
     st.markdown("---")
     
     # Check if user is logged in
