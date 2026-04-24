@@ -172,6 +172,12 @@ def main():
         st.session_state.daily_topic = None
     if 'last_auto_message_time' not in st.session_state:
         st.session_state.last_auto_message_time = None
+    if 'pending_responders' not in st.session_state:
+        st.session_state.pending_responders = []
+    if 'pending_topic' not in st.session_state:
+        st.session_state.pending_topic = ''
+    if 'last_response_time' not in st.session_state:
+        st.session_state.last_response_time = 0.0
     
     # Title with live mode toggle
     col_title, col_toggle = st.columns([4, 1])
@@ -337,9 +343,13 @@ def main():
     if st.session_state.get('pending_responders'):
         now = time.time()
         last = st.session_state.get('last_response_time', 0)
-        delay = random.uniform(1.5, 3.5)
+        # Store delay in session_state so it doesn't change on every rerun
+        if 'next_response_delay' not in st.session_state:
+            st.session_state.next_response_delay = random.uniform(1.5, 3.5)
+        delay = st.session_state.next_response_delay
         
         if now - last >= delay:
+            st.session_state.next_response_delay = random.uniform(1.5, 3.5)  # set next delay
             if st.session_state.pending_responders:
                 friend_name = st.session_state.pending_responders.pop(0)
                 topic = st.session_state.get('pending_topic', '')
@@ -362,6 +372,10 @@ def main():
                     if not st.session_state.get('daily_topic'):
                         st.session_state.daily_topic = topic
                     
+                    # Initialize group chat history if needed
+                    if 'group' not in st.session_state.chat_history:
+                        st.session_state.chat_history['group'] = []
+                    
                     # Add message to chat
                     st.session_state.chat_history['group'].append({
                         'sender': friend_name,
@@ -373,12 +387,13 @@ def main():
                 st.session_state.last_response_time = now
                 st.rerun()
     
-    # Auto-refresh timer while queue is not empty
+    # Auto-refresh indicator while queue is not empty — rerun to process next in queue
     if st.session_state.get('pending_responders'):
+        remaining = len(st.session_state.pending_responders)
         placeholder = st.empty()
-        with placeholder:
-            st.markdown("*Друзья готовятся ответить...*")
-        time.sleep(1)
+        placeholder.markdown(f"*⏳ Друзья готовятся ответить... (осталось {remaining})*")
+        time.sleep(0.8)
+        placeholder.empty()
         st.rerun()
     
     # Live mode logic
