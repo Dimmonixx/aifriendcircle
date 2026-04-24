@@ -320,7 +320,7 @@ def main():
         )
 
     with col_btn:
-        st.markdown("<div style='margin-top: 28px'></div>", unsafe_allow_html=True)
+        st.markdown("<div style='margin-top: 32px'></div>", unsafe_allow_html=True)
         send = st.button("📤", use_container_width=True)
     
     if send or user_message.strip():
