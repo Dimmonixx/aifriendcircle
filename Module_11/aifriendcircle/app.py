@@ -85,11 +85,21 @@ def get_ai_response(api_key, friend_name, user_message, detailed=False):
         return f"Ошибка: {str(e)}"
 
 def main():
+    # Page config
     st.set_page_config(
         page_title="AI Friend Circle",
         page_icon="👥",
         layout="wide"
     )
+    
+    # CSS background gradient
+    st.markdown("""
+    <style>
+    .stApp {
+        background: linear-gradient(180deg, #f8fafc 0%, #eef4ff 100%);
+    }
+    </style>
+    """, unsafe_allow_html=True)
     
     # Initialize session state
     if 'current_responses' not in st.session_state:
