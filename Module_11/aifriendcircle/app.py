@@ -294,23 +294,32 @@ def main():
     )
     
     if st.button("📤 Отправить", type="primary", use_container_width=True) or user_message.strip():
-        # All messages go to group chat with recipient field
-        if 'group' not in st.session_state.chat_history:
-            st.session_state.chat_history['group'] = []
+        # Initialize message_sent flag
+        if 'message_sent' not in st.session_state:
+            st.session_state.message_sent = False
         
-        # Determine recipient
-        if st.session_state.selected_friend is None:
-            recipient = 'Всем'
-        else:
-            recipient = st.session_state.selected_friend
-        
-        # Add user message
-        st.session_state.chat_history['group'].append({
-            'sender': 'user',
-            'text': user_message.strip(),
-            'recipient': recipient,
-            'timestamp': 'now'
-        })
+        # Prevent message duplication
+        if not st.session_state.message_sent:
+            # All messages go to group chat with recipient field
+            if 'group' not in st.session_state.chat_history:
+                st.session_state.chat_history['group'] = []
+            
+            # Determine recipient
+            if st.session_state.selected_friend is None:
+                recipient = 'Всем'
+            else:
+                recipient = st.session_state.selected_friend
+            
+            # Add user message
+            st.session_state.chat_history['group'].append({
+                'sender': 'user',
+                'text': user_message.strip(),
+                'recipient': recipient,
+                'timestamp': 'now'
+            })
+            
+            # Set flag to prevent duplication
+            st.session_state.message_sent = True
         
         # Generate responses
         if st.session_state.selected_friend is None:
@@ -348,6 +357,7 @@ def main():
         
         # Clear input field
         st.session_state.input_key += 1
+        st.session_state.message_sent = False
         st.rerun()
     
     st.markdown('</div>', unsafe_allow_html=True)
