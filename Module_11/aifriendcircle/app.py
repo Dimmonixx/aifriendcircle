@@ -308,22 +308,14 @@ def main():
     if 'input_key' not in st.session_state:
         st.session_state.input_key = 0
     
-    # Create columns for input and button
-    col_msg, col_btn = st.columns([5, 1])
-
-    with col_msg:
-        user_message = st.text_input(
-            "Сообщение:",
-            placeholder=placeholder_text,
-            key=f"msg_{st.session_state.input_key}",
-            label_visibility="collapsed"
-        )
-
-    with col_btn:
-        st.markdown("<div style='margin-top: 32px'></div>", unsafe_allow_html=True)
-        send = st.button("📤", use_container_width=True)
+    user_message = st.text_input(
+        "Сообщение:",
+        placeholder=placeholder_text,
+        key=f"msg_{st.session_state.input_key}",
+        label_visibility="collapsed"
+    )
     
-    if send or user_message.strip():
+    if st.button("📤 Отправить", type="primary", use_container_width=True) or user_message.strip():
         # Initialize message_sent flag
         if 'message_sent' not in st.session_state:
             st.session_state.message_sent = False
