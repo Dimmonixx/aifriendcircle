@@ -180,27 +180,8 @@ def main():
                 st.session_state.active_chat = None
                 st.rerun()
     
-    # Main chat interface with sidebar
-    col1, col2 = st.columns([1, 3])
-    
-    # Soft lavender sidebar styling and white header
-    st.markdown("""
-    <style>
-    .stColumn:first-child {
-        background-color: #F0EEF8;
-        padding: 20px;
-        border-radius: 10px;
-        margin-right: 10px;
-    }
-    .stApp > div {
-        background-color: #FFFFFF;
-        border-bottom: 1px solid #E0DCF5;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-    
-    # Friend cards sidebar
-    with col1:
+    # Friend cards in sidebar
+    with st.sidebar:
         st.markdown("### 👥 Друзья")
         
         # Initialize selected_friend if not exists
@@ -231,8 +212,7 @@ def main():
                 st.session_state.selected_friend = friend_name
                 st.rerun()
     
-    # Chat area - unified chat
-    with col2:
+    # Chat area - full width
         st.markdown("### 💬 Чат с друзьями")
         
         # Message history
