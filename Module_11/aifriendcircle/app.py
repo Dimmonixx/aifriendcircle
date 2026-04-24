@@ -98,6 +98,11 @@ def main():
     .stApp {
         background: linear-gradient(180deg, #f8fafc 0%, #eef4ff 100%);
     }
+    [data-testid="stSidebar"] .stButton > button[kind="primary"] {
+        background: linear-gradient(135deg, #7c3aed, #a855f7);
+        border: none;
+        color: white;
+    }
     </style>
     """, unsafe_allow_html=True)
     
