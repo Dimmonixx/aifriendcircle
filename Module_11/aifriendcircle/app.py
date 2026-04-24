@@ -305,7 +305,8 @@ def main():
     user_message = st.text_input(
         "Сообщение:",
         placeholder=placeholder_text,
-        key=f"msg_{st.session_state.input_key}"
+        key=f"msg_{st.session_state.input_key}",
+        label_visibility="collapsed"
     )
     
     if st.button("📤 Отправить", type="primary", use_container_width=True) or user_message.strip():
