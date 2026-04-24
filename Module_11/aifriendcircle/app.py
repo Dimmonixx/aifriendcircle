@@ -241,43 +241,45 @@ def main():
     
     # Message history
     st.markdown('<div class="chat-container">', unsafe_allow_html=True)
-    with st.container():
-        # Always show group messages
-        messages = st.session_state.chat_history.get('group', [])
-        
-        if not messages:
-            st.markdown("""
-            <div style="text-align: center; padding: 40px; color: #666;">
-                <div style="font-size: 24px; margin-bottom: 10px;">👥</div>
-                <div>Начни разговор с друзьями!</div>
-            </div>
-            """, unsafe_allow_html=True)
-        else:
-            for msg in messages:
-                if msg['sender'] == 'user':
-                    # User message - right side
-                    recipient_text = f" → {msg['recipient']} (лично)" if msg.get('recipient') and msg['recipient'] != 'Всем' else ""
-                    
-                    st.markdown(f"""
-                    <div style="display: flex; justify-content: flex-end; margin: 10px 0;">
-                        <div style="background-color: #E3F2FD; border-radius: 15px; padding: 10px 15px; max-width: 70%; border-top-right-radius: 5px;">
-                            <div style="color: #1976D2; font-weight: bold; font-size: 12px;">Вы{recipient_text}</div>
-                            <div style="color: #333;">{msg['text']}</div>
-                        </div>
+    
+    # Always show group messages
+    messages = st.session_state.chat_history.get('group', [])
+    
+    if not messages:
+        st.markdown("""
+        <div style="text-align: center; padding: 40px; color: #666;">
+            <div style="font-size: 24px; margin-bottom: 10px;">👥</div>
+            <div>Начни разговор с друзьями!</div>
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        for msg in messages:
+            if msg['sender'] == 'user':
+                # User message - right side
+                recipient_text = f" → {msg['recipient']} (лично)" if msg.get('recipient') and msg['recipient'] != 'Всем' else ""
+                
+                st.markdown(f"""
+                <div style="display: flex; justify-content: flex-end; margin: 10px 0;">
+                    <div style="background-color: #E3F2FD; border-radius: 15px; padding: 10px 15px; max-width: 70%; border-top-right-radius: 5px;">
+                        <div style="color: #1976D2; font-weight: bold; font-size: 12px;">Вы{recipient_text}</div>
+                        <div style="color: #333;">{msg['text']}</div>
                     </div>
-                    """, unsafe_allow_html=True)
-                else:
-                    # Friend message - left side with avatar
-                    friend = AI_FRIENDS[msg['sender']]
-                    st.markdown(f"""
-                    <div style="display: flex; justify-content: flex-start; margin: 10px 0;">
-                        <div style="font-size: 24px; margin-right: 10px; margin-top: 5px;">{friend['avatar']}</div>
-                        <div style="background-color: #f5f5f5; border-radius: 15px; padding: 10px 15px; max-width: 70%; border-top-left-radius: 5px; border: 1px solid #e0e0e0;">
-                            <div style="color: #666; font-weight: bold; font-size: 12px;">{msg['sender']}</div>
-                            <div style="color: #333;">{msg['text']}</div>
-                        </div>
+                </div>
+                """, unsafe_allow_html=True)
+            else:
+                # Friend message - left side with avatar
+                friend = AI_FRIENDS[msg['sender']]
+                st.markdown(f"""
+                <div style="display: flex; justify-content: flex-start; margin: 10px 0;">
+                    <div style="font-size: 24px; margin-right: 10px; margin-top: 5px;">{friend['avatar']}</div>
+                    <div style="background-color: #f5f5f5; border-radius: 15px; padding: 10px 15px; max-width: 70%; border-top-left-radius: 5px; border: 1px solid #e0e0e0;">
+                        <div style="color: #666; font-weight: bold; font-size: 12px;">{msg['sender']}</div>
+                        <div style="color: #333;">{msg['text']}</div>
                     </div>
-                    """, unsafe_allow_html=True)
+                </div>
+                """, unsafe_allow_html=True)
+    
+    st.markdown('</div>', unsafe_allow_html=True)
     
     # Recipient indicator above input
     if st.session_state.selected_friend is None:
@@ -294,20 +296,13 @@ def main():
     if 'input_key' not in st.session_state:
         st.session_state.input_key = 0
     
-    # Input field and send button in same row
-    col_input, col_btn = st.columns([6, 1])
+    user_message = st.text_input(
+        "Сообщение:",
+        placeholder=placeholder_text,
+        key=f"msg_{st.session_state.input_key}"
+    )
     
-    with col_input:
-        user_message = st.text_input(
-            "Сообщение:",
-            placeholder=placeholder_text,
-            key=f"msg_{st.session_state.input_key}"
-        )
-    
-    with col_btn:
-        send_clicked = st.button("📤", type="primary", use_container_width=True)
-    
-    if send_clicked or user_message.strip():
+    if st.button("📤 Отправить", type="primary", use_container_width=True) or user_message.strip():
         # All messages go to group chat with recipient field
         if 'group' not in st.session_state.chat_history:
             st.session_state.chat_history['group'] = []
