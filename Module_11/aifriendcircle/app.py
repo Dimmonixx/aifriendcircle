@@ -232,13 +232,6 @@ def main():
     
     with col_toggle:
         st.markdown("<div style='padding: 24px 0 0 0;'></div>", unsafe_allow_html=True)
-        if 'live_mode' not in st.session_state:
-            st.session_state.live_mode = False
-        
-        live_mode_text = "Живая тусовка: ВКЛ 🔥" if st.session_state.live_mode else "Живая тусовка: ВЫКЛ"
-        if st.button(live_mode_text, key="live_mode_toggle"):
-            st.session_state.live_mode = not st.session_state.live_mode
-            st.rerun()
     
     st.markdown("---")
     
