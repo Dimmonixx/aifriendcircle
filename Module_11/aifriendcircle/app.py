@@ -377,18 +377,23 @@ def main():
         import time
         now = time.time()
         interval = random.randint(30, 60)
-        if now - st.session_state.last_auto_message_time > interval:
+        time_passed = now - st.session_state.last_auto_message_time
+        
+        if time_passed > interval:
+            # Time to generate new message
             full_history = st.session_state.chat_history.get('group', [])
             initiator, auto_msg = get_auto_message(full_history)
             if initiator and auto_msg:
                 if 'group' not in st.session_state.chat_history:
                     st.session_state.chat_history['group'] = []
-                # Show typing indicator before adding message
-                st.session_state.pending_responses = [initiator]
-                st.session_state.current_message = auto_msg
                 st.session_state.live_auto_message = auto_msg
+                st.session_state.pending_responses = [initiator]
                 st.session_state.last_auto_message_time = now
                 st.rerun()
+        else:
+            # Wait and refresh to check timer — sleep only 3 sec, non-blocking for input
+            time.sleep(3)
+            st.rerun()
 
     # --- TYPING INDICATOR + QUEUE PROCESSING ---
     if st.session_state.pending_responses:
