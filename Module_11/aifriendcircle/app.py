@@ -2,6 +2,7 @@ import streamlit as st
 from openai import OpenAI
 import json
 import time
+import random
 
 # AI Friends personalities
 AI_FRIENDS = {
@@ -115,6 +116,49 @@ def get_responders(message, chat_history):
         import random
         all_friends = list(AI_FRIENDS.keys())
         return random.sample(all_friends, random.randint(2, 3))
+
+
+def get_auto_message(chat_history):
+    """Generate a spontaneous message from a random friend."""
+    import random
+    try:
+        client = get_client()
+
+        # Pick a random friend to initiate
+        initiator = random.choice(list(AI_FRIENDS.keys()))
+        friend = AI_FRIENDS[initiator]
+
+        history_lines = []
+        for msg in chat_history[-6:]:
+            if msg['sender'] == 'user':
+                history_lines.append(f"Пользователь: {msg['text']}")
+            else:
+                history_lines.append(f"{msg['sender']}: {msg['text']}")
+        history_text = "\n".join(history_lines)
+
+        prompt = f"""Ты {initiator}, {friend['profession']}. Характер: {friend['personality']}.
+
+История чата:
+{history_text}
+
+Напиши короткое спонтанное сообщение в групповой чат — как будто тебе пришла мысль, 
+ты делишься чем-то интересным из своей жизни, задаёшь вопрос группе или комментируешь 
+что-то из последних сообщений. Пиши в своём стиле. Не более 2 предложений."""
+
+        response = client.chat.completions.create(
+            model="deepseek-chat",
+            messages=[
+                {"role": "system", "content": friend['system_prompt']},
+                {"role": "user", "content": prompt}
+            ],
+            max_tokens=200,
+            temperature=0.9
+        )
+
+        return initiator, response.choices[0].message.content
+
+    except Exception:
+        return None, None
 
 
 def get_ai_response(friend_name, message, chat_history=None):
@@ -327,6 +371,29 @@ def main():
         """, unsafe_allow_html=True)
     else:
         render_messages(messages)
+
+    # --- LIVE MODE AUTO MESSAGES ---
+    if st.session_state.live_mode and not st.session_state.pending_responses:
+        import time
+        now = time.time()
+        interval = random.randint(30, 60)
+        if now - st.session_state.last_auto_message_time > interval:
+            full_history = st.session_state.chat_history.get('group', [])
+            initiator, auto_msg = get_auto_message(full_history)
+            if initiator and auto_msg:
+                if 'group' not in st.session_state.chat_history:
+                    st.session_state.chat_history['group'] = []
+                st.session_state.chat_history['group'].append({
+                    'sender': initiator,
+                    'text': auto_msg,
+                    'recipient': 'Всем',
+                    'timestamp': 'now'
+                })
+                st.session_state.last_auto_message_time = now
+            st.rerun()
+        else:
+            time.sleep(5)
+            st.rerun()
 
     # --- TYPING INDICATOR + QUEUE PROCESSING ---
     if st.session_state.pending_responses:
