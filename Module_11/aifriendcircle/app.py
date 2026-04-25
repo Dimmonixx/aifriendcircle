@@ -1,6 +1,7 @@
 import streamlit as st
 from openai import OpenAI
 import json
+import time
 
 # AI Friends personalities
 AI_FRIENDS = {
@@ -220,6 +221,10 @@ def main():
         st.session_state.pending_responses = []
     if 'current_message' not in st.session_state:
         st.session_state.current_message = ''
+    if 'live_mode' not in st.session_state:
+        st.session_state.live_mode = False
+    if 'last_auto_message_time' not in st.session_state:
+        st.session_state.last_auto_message_time = 0
 
     # Header
     st.markdown("""
@@ -288,6 +293,13 @@ def main():
             st.session_state.selected_friend = None
             st.session_state.pending_responses = []
             st.rerun()
+
+        st.markdown("---")
+        live_label = "🔥 Живая тусовка: ВКЛ" if st.session_state.live_mode else "🔥 Живая тусовка: ВЫКЛ"
+        if st.button(live_label, key="live_mode_btn", use_container_width=True):
+            st.session_state.live_mode = not st.session_state.live_mode
+            st.rerun()
+        st.markdown("---")
 
         for friend_name, friend_info in AI_FRIENDS.items():
             is_active = st.session_state.selected_friend == friend_name
