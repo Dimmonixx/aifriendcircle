@@ -397,7 +397,7 @@ def main():
         disabled=input_disabled
     )
 
-    if (send_clicked or user_message.strip()) and not input_disabled and user_message.strip():
+    if send_clicked and not input_disabled and user_message.strip():
         if 'group' not in st.session_state.chat_history:
             st.session_state.chat_history['group'] = []
 
