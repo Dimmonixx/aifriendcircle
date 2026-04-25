@@ -55,29 +55,6 @@ AI_FRIENDS = {
     }
 }
 
-def generate_daily_topic():
-    """Generate daily topic for live chat mode"""
-    # Check if user has selected a custom topic
-    if 'user_selected_topic' in st.session_state and st.session_state.user_selected_topic:
-        return st.session_state.user_selected_topic
-    
-    topics = [
-        "Новые гаджеты 2024: что уже вышло и чего ждать",
-        "Искусственный интеллект в повседневной жизни: польза или вред?",
-        "Криптовалюты: стоит ли инвестировать в 2024 году",
-        "Здоровый образ жизни: мифы и реальность",
-        "Путешествия: лучшие направления для отпуска",
-        "Кино и сериалы: что посмотреть в этом месяце",
-        "Технологии: последние тренды и инновации",
-        "Еда и кулинария: новые рецепты и тренды",
-        "Погода и климат: что происходит с планетой",
-        "Работа и карьера: как найти призвание",
-        "Отношения: психология современности",
-        "Спорт и фитнес: мотивация и результаты"
-    ]
-    
-    return random.choice(topics)
-
 
 def get_ai_response(friend_name, message, chat_history=None):
     try:
@@ -145,13 +122,6 @@ def main():
         padding-bottom: 1rem;
     }
     header {display: none;}
-    
-    /* Change text input focus color from red to purple */
-    .stTextInput > div > div > input:focus,
-    .stTextArea > div > div > textarea:focus {
-        border-color: #7c3aed !important;
-        box-shadow: 0 0 0 1px #7c3aed !important;
-    }
     </style>
     """, unsafe_allow_html=True)
     
@@ -172,24 +142,8 @@ def main():
         st.session_state.selected_recipient = 'Всем'
     if 'active_chat' not in st.session_state:
         st.session_state.active_chat = None
-    if 'live_mode' not in st.session_state:
-        st.session_state.live_mode = False
-    if 'daily_topic' not in st.session_state:
-        st.session_state.daily_topic = None
-    if 'last_auto_message_time' not in st.session_state:
-        st.session_state.last_auto_message_time = None
-    if 'pending_responders' not in st.session_state:
-        st.session_state.pending_responders = []
-    if 'pending_topic' not in st.session_state:
-        st.session_state.pending_topic = ''
-    if 'last_response_time' not in st.session_state:
-        st.session_state.last_response_time = 0.0
-    
-    # Title with live mode toggle
-    col_title, col_toggle = st.columns([4, 1])
-    
-    with col_title:
-        st.markdown("""
+    # Title without live mode toggle
+    st.markdown("""
 <div style="padding: 24px 0 16px 0;">
     <span style="font-size: 28px; font-weight: 700; 
     color: #4c1d95;">👥 AI Friend Circle</span>
@@ -197,9 +151,6 @@ def main():
     margin-left: 12px;">Общайся с друзьями с разными характерами!</span>
 </div>
 """, unsafe_allow_html=True)
-    
-    with col_toggle:
-        st.markdown("<div style='padding: 24px 0 0 0;'></div>", unsafe_allow_html=True)
     
     st.markdown("---")
     
@@ -286,20 +237,6 @@ def main():
             st.session_state.selected_friend = None
             st.rerun()
         
-        # Live mode toggle in sidebar
-        if 'live_mode' not in st.session_state:
-            st.session_state.live_mode = False
-        
-        live_mode_text = "🔥 Живая тусовка: ВКЛ" if st.session_state.live_mode else "🔥 Живая тусовка: ВЫКЛ"
-        if st.button(live_mode_text, key="sidebar_live_mode_toggle", use_container_width=True):
-            st.session_state.live_mode = not st.session_state.live_mode
-            st.rerun()
-        
-        st.markdown("---")
-        
-        # Friends list in sidebar
-        st.markdown("### 👥 Друзья")
-        
         # Individual friend cards
         for friend_name, friend_info in AI_FRIENDS.items():
             is_active = st.session_state.selected_friend == friend_name
@@ -316,134 +253,7 @@ def main():
     # Chat area - full width in main area
     st.markdown("### 💬 Чат с друзьями")
     
-    # Topic selection area (only in live mode)
-    if st.session_state.live_mode:
-        st.markdown("### 📰 Тема дня")
         
-        # Initialize user_selected_topic if not exists
-        if 'user_selected_topic' not in st.session_state:
-            st.session_state.user_selected_topic = None
-        
-        # Custom topic input
-        st.markdown("**Введи свою тему:**")
-        custom_topic = st.text_area(
-            "Твоя тема:",
-            placeholder="Например: Новые гаджеты Apple 2024: инновации и тренды...",
-            key="custom_topic_input",
-            height=100
-        )
-        
-        if st.button("🚀 Применить тему", key="apply_custom_topic", use_container_width=True):
-            if custom_topic.strip():
-                # Set up responder queue instead of generating immediately
-                st.session_state.user_selected_topic = custom_topic.strip()
-                st.session_state.pending_responders = random.sample(list(AI_FRIENDS.keys()), len(AI_FRIENDS))
-                st.session_state.pending_topic = custom_topic.strip()
-                st.session_state.last_response_time = time.time()
-                st.session_state.daily_topic = None  # Reset to trigger new topic generation
-                st.rerun()
-        
-        st.markdown("---")
-    
-    # Process responder queue at the beginning of main render (BEFORE chat display)
-    if st.session_state.get('pending_responders'):
-        now = time.time()
-        last = st.session_state.get('last_response_time', 0)
-        # Store delay in session_state so it doesn't change on every rerun
-        if 'next_response_delay' not in st.session_state:
-            st.session_state.next_response_delay = random.uniform(1.5, 3.5)
-        delay = st.session_state.next_response_delay
-        
-        if now - last >= delay:
-            st.session_state.next_response_delay = random.uniform(1.5, 3.5)  # set next delay
-            if st.session_state.pending_responders:
-                friend_name = st.session_state.pending_responders.pop(0)
-                topic = st.session_state.get('pending_topic', '')
-                
-                # Generate response for this friend
-                context_messages = [msg for msg in st.session_state.chat_history.get('group', [])[-3:]]
-                context_text = "\n".join([f"{msg['sender']}: {msg['text']}" for msg in context_messages])
-                
-                response_prompt = f"""
-Ты - {friend_name}. Дай короткий комментарий (1-2 предложения) на тему "{topic}".
-Учитывай предыдущие сообщения:
-{context_text}
-
-Отвечай естественно, согласно своему характеру. Не упоминай что ты ИИ.
-"""
-                
-                response = get_ai_response(friend_name, response_prompt, [])
-                if response and not response.startswith("Ошибка:"):
-                    # Set daily topic on first response
-                    if not st.session_state.get('daily_topic'):
-                        st.session_state.daily_topic = topic
-                    
-                    # Initialize group chat history if needed
-                    if 'group' not in st.session_state.chat_history:
-                        st.session_state.chat_history['group'] = []
-                    
-                    # Add message to chat
-                    st.session_state.chat_history['group'].append({
-                        'sender': friend_name,
-                        'text': response,
-                        'recipient': 'Всем',
-                        'timestamp': 'now'
-                    })
-                    
-                st.session_state.last_response_time = now
-                st.rerun()
-    
-    # Auto-refresh indicator while queue is not empty — rerun to process next in queue
-    if st.session_state.get('pending_responders'):
-        remaining = len(st.session_state.pending_responders)
-        placeholder = st.empty()
-        placeholder.markdown(f"*⏳ Друзья готовятся ответить... (осталось {remaining})*")
-        time.sleep(0.8)
-        placeholder.empty()
-        st.rerun()
-    
-    # Live mode logic
-    if st.session_state.live_mode:
-        # Display daily topic
-        if st.session_state.daily_topic:
-            st.markdown(f"""
-            <div style="background: linear-gradient(135deg, #f59e0b, #ef4444); color: white; padding: 12px; border-radius: 8px; margin-bottom: 16px; text-align: center;">
-                <div style="font-size: 16px; font-weight: bold;">📰 Тема дня</div>
-                <div style="font-size: 14px; margin-top: 8px;">{st.session_state.daily_topic}</div>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        # Auto-messages from friends every 2-3 minutes (only if no pending queue)
-        current_time = time.time()
-        if (st.session_state.get('last_response_time', 0) and 
-            current_time - st.session_state.last_response_time > 120 and  # 2 minutes
-            not st.session_state.get('pending_responders')):  # No pending queue
-            with st.spinner("Друзья общаются..."):
-                friend_name = random.choice(list(AI_FRIENDS.keys()))
-                
-                # Create context-aware message
-                context_messages = [msg for msg in st.session_state.chat_history.get('group', [])[-5:]]
-                context_text = "\n".join([f"{msg['sender']}: {msg['text']}" for msg in context_messages])
-                
-                auto_prompt = f"""
-Ты - {friend_name}. Продолжай обсуждение темы дня "{st.session_state.daily_topic}". 
-Учитывай всю историю разговора:
-{context_text}
-
-Отвечай естественно, согласно своему характеру. Не упоминай что ты ИИ.
-"""
-                
-                response = get_ai_response(friend_name, auto_prompt, [])
-                if response and not response.startswith("Ошибка:"):
-                    st.session_state.chat_history['group'].append({
-                        'sender': friend_name,
-                        'text': response,
-                        'recipient': 'Всем',
-                        'timestamp': 'now'
-                    })
-                    st.session_state.last_response_time = current_time
-                    st.rerun()
-    
     # Always show group messages
     messages = st.session_state.chat_history.get('group', [])
     
@@ -545,13 +355,24 @@ def main():
         
         # Generate responses
         if st.session_state.selected_friend is None:
-            # Запускаем очередь вместо мгновенных ответов
-            st.session_state.pending_responders = random.sample(
-                list(AI_FRIENDS.keys()), len(AI_FRIENDS)
-            )
-            st.session_state.pending_topic = user_message.strip()
-            st.session_state.last_response_time = time.time()
-            st.session_state.next_response_delay = random.uniform(1.5, 3.0)
+            # All friends respond (considering full conversation history in live mode)
+            with st.spinner("Друзья думают над ответами..."):
+                for friend_name in AI_FRIENDS.keys():
+                    # Get full conversation history for context
+                    full_history = st.session_state.chat_history.get('group', [])
+                    response = get_ai_response(
+                        friend_name,
+                        user_message.strip(),
+                        full_history
+                    )
+                    
+                    if response and not response.startswith("Ошибка:"):
+                        st.session_state.chat_history['group'].append({
+                            'sender': friend_name,
+                            'text': response,
+                            'recipient': 'Всем',
+                            'timestamp': 'now'
+                        })
         else:
             # Only selected friend responds
             friend_name = st.session_state.selected_friend
