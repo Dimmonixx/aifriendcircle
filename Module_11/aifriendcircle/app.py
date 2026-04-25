@@ -383,24 +383,18 @@ def main():
             if initiator and auto_msg:
                 if 'group' not in st.session_state.chat_history:
                     st.session_state.chat_history['group'] = []
-                st.session_state.chat_history['group'].append({
-                    'sender': initiator,
-                    'text': auto_msg,
-                    'recipient': 'Всем',
-                    'timestamp': 'now'
-                })
+                # Show typing indicator before adding message
+                st.session_state.pending_responses = [initiator]
+                st.session_state.current_message = auto_msg
+                st.session_state.live_auto_message = auto_msg
                 st.session_state.last_auto_message_time = now
-            st.rerun()
-        else:
-            time.sleep(5)
-            st.rerun()
+                st.rerun()
 
     # --- TYPING INDICATOR + QUEUE PROCESSING ---
     if st.session_state.pending_responses:
         friend_name = st.session_state.pending_responses[0]
         friend = AI_FRIENDS[friend_name]
 
-        # Show typing indicator
         typing_placeholder = st.empty()
         typing_placeholder.markdown(f"""
         <div style="display: flex; align-items: center; margin: 10px 0;">
@@ -411,18 +405,20 @@ def main():
         </div>
         """, unsafe_allow_html=True)
 
-        # Generate response
-        full_history = st.session_state.chat_history.get('group', [])
-        response = get_ai_response(
-            friend_name,
-            st.session_state.current_message,
-            full_history
-        )
+        # If this is a live mode auto-message, use pre-generated text
+        if st.session_state.get('live_auto_message'):
+            response = st.session_state.live_auto_message
+            st.session_state.live_auto_message = None
+        else:
+            full_history = st.session_state.chat_history.get('group', [])
+            response = get_ai_response(
+                friend_name,
+                st.session_state.current_message,
+                full_history
+            )
 
-        # Clear typing indicator
         typing_placeholder.empty()
 
-        # Add response to chat
         if response and not response.startswith("Ошибка:"):
             if 'group' not in st.session_state.chat_history:
                 st.session_state.chat_history['group'] = []
@@ -433,7 +429,6 @@ def main():
                 'timestamp': 'now'
             })
 
-        # Remove from queue
         st.session_state.pending_responses.pop(0)
         st.rerun()
 
