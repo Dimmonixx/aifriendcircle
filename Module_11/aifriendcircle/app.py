@@ -375,26 +375,26 @@ def main():
         render_messages(messages)
 
     # --- LIVE MODE: авто-обновление страницы ---
-if st.session_state.live_mode and not st.session_state.pending_responses:
-    import time
-    now = time.time()
-    interval = random.randint(30, 60)
-    time_passed = now - st.session_state.last_auto_message_time
+    if st.session_state.live_mode and not st.session_state.pending_responses:
+        import time
+        now = time.time()
+        interval = random.randint(30, 60)
+        time_passed = now - st.session_state.last_auto_message_time
 
-    if time_passed > interval:
-        full_history = st.session_state.chat_history.get('group', [])
-        initiator, auto_msg = get_auto_message(full_history)
-        if initiator and auto_msg:
-            if 'group' not in st.session_state.chat_history:
-                st.session_state.chat_history['group'] = []
-            st.session_state.live_auto_message = auto_msg
-            st.session_state.pending_responses = [initiator]
-            st.session_state.current_message = ''
-            st.session_state.last_auto_message_time = now
-            st.rerun()
-        else:
-            st.session_state.last_auto_message_time = now
-            st.rerun()
+        if time_passed > interval:
+            full_history = st.session_state.chat_history.get('group', [])
+            initiator, auto_msg = get_auto_message(full_history)
+            if initiator and auto_msg:
+                if 'group' not in st.session_state.chat_history:
+                    st.session_state.chat_history['group'] = []
+                st.session_state.live_auto_message = auto_msg
+                st.session_state.pending_responses = [initiator]
+                st.session_state.current_message = ''
+                st.session_state.last_auto_message_time = now
+                st.rerun()
+            else:
+                st.session_state.last_auto_message_time = now
+                st.rerun()
 
 # --- TYPING INDICATOR + QUEUE PROCESSING ---
 if st.session_state.pending_responses:
