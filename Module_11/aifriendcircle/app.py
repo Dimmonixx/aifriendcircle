@@ -1,8 +1,6 @@
 import streamlit as st
 from openai import OpenAI
 import json
-import time
-import random
 
 # AI Friends personalities
 AI_FRIENDS = {
@@ -118,49 +116,6 @@ def get_responders(message, chat_history):
         return random.sample(all_friends, random.randint(2, 3))
 
 
-def get_auto_message(chat_history):
-    """Generate a spontaneous message from a random friend."""
-    import random
-    try:
-        client = get_client()
-
-        # Pick a random friend to initiate
-        initiator = random.choice(list(AI_FRIENDS.keys()))
-        friend = AI_FRIENDS[initiator]
-
-        history_lines = []
-        for msg in chat_history[-6:]:
-            if msg['sender'] == 'user':
-                history_lines.append(f"Пользователь: {msg['text']}")
-            else:
-                history_lines.append(f"{msg['sender']}: {msg['text']}")
-        history_text = "\n".join(history_lines)
-
-        prompt = f"""Ты {initiator}, {friend['profession']}. Характер: {friend['personality']}.
-
-История чата:
-{history_text}
-
-Напиши короткое спонтанное сообщение в групповой чат — как будто тебе пришла мысль, 
-ты делишься чем-то интересным из своей жизни, задаёшь вопрос группе или комментируешь 
-что-то из последних сообщений. Пиши в своём стиле. Не более 2 предложений."""
-
-        response = client.chat.completions.create(
-            model="deepseek-chat",
-            messages=[
-                {"role": "system", "content": friend['system_prompt']},
-                {"role": "user", "content": prompt}
-            ],
-            max_tokens=200,
-            temperature=0.9
-        )
-
-        return initiator, response.choices[0].message.content
-
-    except Exception:
-        return None, None
-
-
 def get_ai_response(friend_name, message, chat_history=None):
     try:
         friend = AI_FRIENDS[friend_name]
@@ -265,12 +220,6 @@ def main():
         st.session_state.pending_responses = []
     if 'current_message' not in st.session_state:
         st.session_state.current_message = ''
-    if 'live_mode' not in st.session_state:
-        st.session_state.live_mode = False
-    if 'last_auto_message_time' not in st.session_state:
-        st.session_state.last_auto_message_time = 0
-    if 'live_auto_message' not in st.session_state:
-        st.session_state.live_auto_message = None
 
     # Header
     st.markdown("""
@@ -340,13 +289,6 @@ def main():
             st.session_state.pending_responses = []
             st.rerun()
 
-        st.markdown("---")
-        live_label = "🔥 Живая тусовка: ВКЛ" if st.session_state.live_mode else "🔥 Живая тусовка: ВЫКЛ"
-        if st.button(live_label, key="live_mode_btn", use_container_width=True):
-            st.session_state.live_mode = not st.session_state.live_mode
-            st.rerun()
-        st.markdown("---")
-
         for friend_name, friend_info in AI_FRIENDS.items():
             is_active = st.session_state.selected_friend == friend_name
             if st.button(
@@ -374,49 +316,23 @@ def main():
     else:
         render_messages(messages)
 
-    # --- LIVE MODE: авто-обновление страницы ---
-    if st.session_state.live_mode and not st.session_state.pending_responses:
-        import time
-        now = time.time()
-        interval = random.randint(30, 60)
-        time_passed = now - st.session_state.last_auto_message_time
+    # --- TYPING INDICATOR + QUEUE PROCESSING ---
+    if st.session_state.pending_responses:
+        friend_name = st.session_state.pending_responses[0]
+        friend = AI_FRIENDS[friend_name]
 
-        if time_passed > interval:
-            full_history = st.session_state.chat_history.get('group', [])
-            initiator, auto_msg = get_auto_message(full_history)
-            if initiator and auto_msg:
-                if 'group' not in st.session_state.chat_history:
-                    st.session_state.chat_history['group'] = []
-                st.session_state.live_auto_message = auto_msg
-                st.session_state.pending_responses = [initiator]
-                st.session_state.current_message = ''
-                st.session_state.last_auto_message_time = now
-                st.rerun()
-            else:
-                st.session_state.last_auto_message_time = now
-                st.rerun()
-
-# --- TYPING INDICATOR + QUEUE PROCESSING ---
-if st.session_state.pending_responses:
-    friend_name = st.session_state.pending_responses[0]
-    friend = AI_FRIENDS[friend_name]
-
-    typing_placeholder = st.empty()
-    typing_placeholder.markdown(f"""
-    <div style="display: flex; align-items: center; margin: 10px 0;">
-        <div style="font-size: 24px; margin-right: 10px;">{friend['avatar']}</div>
-        <div style="background-color: #f0f0f0; border-radius: 15px; padding: 8px 14px; color: #888; font-style: italic;">
-            {friend_name} печатает...
+        # Show typing indicator
+        typing_placeholder = st.empty()
+        typing_placeholder.markdown(f"""
+        <div style="display: flex; align-items: center; margin: 10px 0;">
+            <div style="font-size: 24px; margin-right: 10px;">{friend['avatar']}</div>
+            <div style="background-color: #f0f0f0; border-radius: 15px; padding: 8px 14px; color: #888; font-style: italic;">
+                {friend_name} печатает...
+            </div>
         </div>
-    </div>
-    """, unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
 
-    # Live mode: use pre-generated text
-    live_msg = st.session_state.get('live_auto_message')
-    if live_msg:
-        response = live_msg
-        st.session_state.live_auto_message = None
-    else:
+        # Generate response
         full_history = st.session_state.chat_history.get('group', [])
         response = get_ai_response(
             friend_name,
@@ -424,20 +340,23 @@ if st.session_state.pending_responses:
             full_history
         )
 
-    typing_placeholder.empty()
+        # Clear typing indicator
+        typing_placeholder.empty()
 
-    if response and not response.startswith("Ошибка:"):
-        if 'group' not in st.session_state.chat_history:
-            st.session_state.chat_history['group'] = []
-        st.session_state.chat_history['group'].append({
-            'sender': friend_name,
-            'text': response,
-            'recipient': 'Всем',
-            'timestamp': 'now'
-        })
+        # Add response to chat
+        if response and not response.startswith("Ошибка:"):
+            if 'group' not in st.session_state.chat_history:
+                st.session_state.chat_history['group'] = []
+            st.session_state.chat_history['group'].append({
+                'sender': friend_name,
+                'text': response,
+                'recipient': 'Всем',
+                'timestamp': 'now'
+            })
 
-    st.session_state.pending_responses.pop(0)
-    st.rerun()
+        # Remove from queue
+        st.session_state.pending_responses.pop(0)
+        st.rerun()
 
     # Input area
     if st.session_state.selected_friend is None:
@@ -460,8 +379,8 @@ if st.session_state.pending_responses:
 ">&#9997;&#65039; {recipient_text}</div>
 """, unsafe_allow_html=True)
 
-    # В live mode инпут НЕ блокируется
-    input_disabled = False
+    # Disable input while processing
+    input_disabled = len(st.session_state.pending_responses) > 0
 
     user_message = st.text_input(
         "Сообщение:",
