@@ -269,6 +269,8 @@ def main():
         st.session_state.live_mode = False
     if 'last_auto_message_time' not in st.session_state:
         st.session_state.last_auto_message_time = 0
+    if 'live_auto_message' not in st.session_state:
+        st.session_state.live_auto_message = None
 
     # Header
     st.markdown("""
@@ -372,70 +374,70 @@ def main():
     else:
         render_messages(messages)
 
-    # --- LIVE MODE AUTO MESSAGES ---
-    if st.session_state.live_mode and not st.session_state.pending_responses:
-        import time
-        now = time.time()
-        interval = random.randint(30, 60)
-        time_passed = now - st.session_state.last_auto_message_time
-        
-        if time_passed > interval:
-            # Time to generate new message
-            full_history = st.session_state.chat_history.get('group', [])
-            initiator, auto_msg = get_auto_message(full_history)
-            if initiator and auto_msg:
-                if 'group' not in st.session_state.chat_history:
-                    st.session_state.chat_history['group'] = []
-                st.session_state.live_auto_message = auto_msg
-                st.session_state.pending_responses = [initiator]
-                st.session_state.last_auto_message_time = now
-                st.rerun()
-        else:
-            # Wait and refresh to check timer — sleep only 3 sec, non-blocking for input
-            time.sleep(3)
-            st.rerun()
+    # --- LIVE MODE: авто-обновление страницы ---
+if st.session_state.live_mode and not st.session_state.pending_responses:
+    import time
+    now = time.time()
+    interval = random.randint(30, 60)
+    time_passed = now - st.session_state.last_auto_message_time
 
-    # --- TYPING INDICATOR + QUEUE PROCESSING ---
-    if st.session_state.pending_responses:
-        friend_name = st.session_state.pending_responses[0]
-        friend = AI_FRIENDS[friend_name]
-
-        typing_placeholder = st.empty()
-        typing_placeholder.markdown(f"""
-        <div style="display: flex; align-items: center; margin: 10px 0;">
-            <div style="font-size: 24px; margin-right: 10px;">{friend['avatar']}</div>
-            <div style="background-color: #f0f0f0; border-radius: 15px; padding: 8px 14px; color: #888; font-style: italic;">
-                {friend_name} печатает...
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-
-        # If this is a live mode auto-message, use pre-generated text
-        if st.session_state.get('live_auto_message'):
-            response = st.session_state.live_auto_message
-            st.session_state.live_auto_message = None
-        else:
-            full_history = st.session_state.chat_history.get('group', [])
-            response = get_ai_response(
-                friend_name,
-                st.session_state.current_message,
-                full_history
-            )
-
-        typing_placeholder.empty()
-
-        if response and not response.startswith("Ошибка:"):
+    if time_passed > interval:
+        full_history = st.session_state.chat_history.get('group', [])
+        initiator, auto_msg = get_auto_message(full_history)
+        if initiator and auto_msg:
             if 'group' not in st.session_state.chat_history:
                 st.session_state.chat_history['group'] = []
-            st.session_state.chat_history['group'].append({
-                'sender': friend_name,
-                'text': response,
-                'recipient': 'Всем',
-                'timestamp': 'now'
-            })
+            st.session_state.live_auto_message = auto_msg
+            st.session_state.pending_responses = [initiator]
+            st.session_state.current_message = ''
+            st.session_state.last_auto_message_time = now
+            st.rerun()
+        else:
+            st.session_state.last_auto_message_time = now
+            st.rerun()
 
-        st.session_state.pending_responses.pop(0)
-        st.rerun()
+# --- TYPING INDICATOR + QUEUE PROCESSING ---
+if st.session_state.pending_responses:
+    friend_name = st.session_state.pending_responses[0]
+    friend = AI_FRIENDS[friend_name]
+
+    typing_placeholder = st.empty()
+    typing_placeholder.markdown(f"""
+    <div style="display: flex; align-items: center; margin: 10px 0;">
+        <div style="font-size: 24px; margin-right: 10px;">{friend['avatar']}</div>
+        <div style="background-color: #f0f0f0; border-radius: 15px; padding: 8px 14px; color: #888; font-style: italic;">
+            {friend_name} печатает...
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Live mode: use pre-generated text
+    live_msg = st.session_state.get('live_auto_message')
+    if live_msg:
+        response = live_msg
+        st.session_state.live_auto_message = None
+    else:
+        full_history = st.session_state.chat_history.get('group', [])
+        response = get_ai_response(
+            friend_name,
+            st.session_state.current_message,
+            full_history
+        )
+
+    typing_placeholder.empty()
+
+    if response and not response.startswith("Ошибка:"):
+        if 'group' not in st.session_state.chat_history:
+            st.session_state.chat_history['group'] = []
+        st.session_state.chat_history['group'].append({
+            'sender': friend_name,
+            'text': response,
+            'recipient': 'Всем',
+            'timestamp': 'now'
+        })
+
+    st.session_state.pending_responses.pop(0)
+    st.rerun()
 
     # Input area
     if st.session_state.selected_friend is None:
@@ -458,8 +460,8 @@ def main():
 ">&#9997;&#65039; {recipient_text}</div>
 """, unsafe_allow_html=True)
 
-    # Disable input while processing
-    input_disabled = len(st.session_state.pending_responses) > 0
+    # В live mode инпут НЕ блокируется
+    input_disabled = False
 
     user_message = st.text_input(
         "Сообщение:",
